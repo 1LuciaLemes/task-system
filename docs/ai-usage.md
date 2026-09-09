@@ -202,3 +202,39 @@ Importante:
 
 Al finalizar, mostrame un resumen de las decisiones arquitectónicas que documentaste y cualquier decisión que haya quedado pendiente.
 ```
+
+### 4. Preparación de la estructura inicial
+
+```
+Quiero preparar la estructura inicial del proyecto como paso previo a la implementación.
+
+Consultá y usá como fuente los archivos:
+- docs/requirements.md
+- docs/architecture.md
+
+Tu tarea es únicamente:
+
+1. Crear la estructura de carpetas del monorepo según architecture.md:
+   - backend/src/{controllers,routes,services,repositories,models,types,utils}
+     con app.ts y server.ts en backend/src/
+   - frontend/src/{components,pages,services,hooks,types,utils}
+     con App.tsx y main.tsx en frontend/src/
+
+2. Crear en la raíz, backend y frontend los archivos de configuración
+   mínimos de proyecto. La configuración debe prepararse para:
+   - Backend: Node.js + Express + TypeScript (tests con Vitest y Supertest).
+   - Frontend: React + TypeScript + Tailwind CSS (tests con Vitest).
+   NO instalar dependencias todavía: solo dejar los archivos de configuración
+   (package.json, tsconfig.json, config de Tailwind, etc.).
+
+3. NO instalar dependencias (sin npm install ni similar).
+4. NO implementar ningún código de aplicación ni lógica de negocio.
+5. NO crear archivos de configuración de Docker todavía.
+6. NO modificar los archivos .md existentes.
+7. NO adoptar herramientas no definidas en architecture.md o en este
+   prompt. Mencioná en las decisiones pendientes cualquier herramienta
+   nueva que se considere necesaria para que el desarrollador la confirme.
+8. Mantener el nombre de carpetas y archivos en inglés.
+
+Al finalizar, mostrame un resumen de lo creado y de las decisiones pendientes.
+```

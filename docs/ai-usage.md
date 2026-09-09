@@ -238,3 +238,68 @@ Tu tarea es únicamente:
 
 Al finalizar, mostrame un resumen de lo creado y de las decisiones pendientes.
 ```
+
+### 5. Implementación de la lógica de negocio del backend
+
+```
+Quiero implementar el núcleo del backend: dominio y lógica de negocio, sin API todavía.
+
+Consultá y usá como fuente de requisitos:
+- docs/requirements.md
+- docs/architecture.md
+
+Backend actual: backend/src/ con carpetas controllers, routes, services,
+repositories, models, types y utils (inicializadas).
+
+Implementá únicamente:
+
+1. Tipos y modelos del dominio (backend/src/types y backend/src/models):
+   - TaskStatus: PENDING | IN_PROGRESS | COMPLETE
+   - TaskPriority: LOW | MEDIUM | HIGH
+   - Task con los campos mínimos de requirements.md: id, title,
+     description, status, priority, estimate, parentTaskId, position,
+     createdAt, updatedAt.
+   - Tipos para crear y actualizar tareas (por ejemplo CreateTaskInput
+     y UpdateTaskInput).
+
+2. Repositorio (backend/src/repositories):
+   - Interfaz TaskRepository con las operaciones CRUD que necesite la
+     lógica de negocio.
+   - Implementación InMemoryTaskRepository que no dependa de PostgreSQL.
+   - La lógica de negocio debe depender solo de la interfaz.
+
+3. Lógica de negocio (backend/src/services):
+   - TaskService.
+   - Validaciones: título obligatorio y no compuesto solo de espacios;
+     estimación opcional y no negativa (0 válido).
+   - Estado inicial PENDING; prioridad inicial sugerida MEDIUM.
+   - Jerarquía: parentTaskId (null en tareas raíz). El padre no puede
+     modificarse desde la edición normal.
+   - Orden: asignación básica de position dentro del mismo nivel.
+   - Eliminación en cascada de todos los descendientes.
+   - Método para detectar si una tarea tiene descendientes incompletos
+     (status !== COMPLETE en el subárbol), de modo que el frontend pueda
+     decidir el mensaje de confirmación.
+   - Cálculo recursivo de la estimación total de una jerarquía.
+   - Resumen de esfuerzo (total, pending, in progress, complete)
+     considerando toda la jerarquía.
+
+4. Tests unitarios con Vitest: cubrí como mínimo:
+   - Validación de tareas, estados y prioridades.
+   - Jerarquía y cálculo recursivo de estimaciones.
+   - Eliminación de descendientes (incluyendo múltiples niveles).
+   - Detección de descendientes incompletos.
+   - Resumen de esfuerzo.
+
+Restricciones:
+- NO implementar todavía controllers ni rutas ni la API HTTP.
+- NO usar PostgreSQL todavía.
+- NO agregar funcionalidades que no estén en requirements.md.
+- NO agregar comentarios al código.
+- Nombres de variables, funciones, carpetas y archivos en inglés.
+- No modificar archivos .md existentes.
+- No commitear ni pushear.
+
+Al finalizar corré los tests y mostrame: resumen de lo implementado,
+resultado de los tests y decisiones pendientes.
+```

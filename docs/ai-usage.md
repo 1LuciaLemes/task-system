@@ -303,3 +303,61 @@ Restricciones:
 Al finalizar corré los tests y mostrame: resumen de lo implementado,
 resultado de los tests y decisiones pendientes.
 ```
+
+### 6. Implementación de la capa de API REST del backend
+
+```
+Quiero implementar la capa de API REST del backend, exponiendo los endpoints definidos en requirements.md.
+
+Consultá y usá como fuente:
+- docs/requirements.md
+- docs/architecture.md
+
+El backend ya tiene models, types, TaskRepository (interfaz) +
+InMemoryTaskRepository y TaskService con la lógica completa y testeada.
+
+Implementá únicamente:
+
+1. Controllers (backend/src/controllers):
+   - TaskController que use TaskService para responder HTTP:
+     GET    /tasks       (listado de tareas)
+     GET    /tasks/:id   (detalle)
+     POST   /tasks       (crear)
+     PATCH  /tasks/:id   (actualizar, sin permitir cambiar parentTaskId)
+     DELETE /tasks/:id   (eliminar en cascada)
+
+2. Manejo de errores HTTP:
+   - Mapear ValidationError a 400 con mensaje en español.
+   - Mapear tarea inexistente a 404.
+   - Formato de error consistente (ej: { error, message }).
+
+3. Routes (backend/src/routes):
+   - taskRouter montado en /tasks.
+
+4. app.ts:
+   - Crear la aplicación Express con middleware JSON y montar las rutas.
+   - Exportar la app sin abrir el puerto (para testearla con Supertest).
+
+5. server.ts:
+   - Arrancar el servidor (puerto 3000) usando app.ts.
+
+6. Tests de API con Vitest + Supertest cubriendo los 5 endpoints:
+   crear, listar, detalle, actualizar y eliminar, incluidos 400
+   (validación), 404 (inexistente) y cascada en DELETE.
+
+Decisión a definir en este paso (documentala):
+   - GET /tasks: ¿devolver solo tareas raíz o todas con su parentTaskId
+     para que el frontend arme el árbol?
+
+Restricciones:
+- NO usar PostgreSQL (seguís con el repositorio en memoria).
+- NO modificar la lógica de negocio salvo que un test lo exija.
+- NO agregar funcionalidades fuera de requirements.md.
+- NO agregar comentarios al código.
+- Strings y respuestas al usuario en español; nombres de código en inglés.
+- No modificar archivos .md existentes.
+- No commitear ni pushear.
+
+Al finalizar corré tests y build, y mostrame: resumen, resultado de
+tests/build y decisiones pendientes.
+```

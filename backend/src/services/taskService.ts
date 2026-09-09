@@ -44,6 +44,13 @@ export class TaskService {
     return this.repository.findById(id);
   }
 
+  async getAllTasks(): Promise<Task[]> {
+    const tasks = await this.repository.findAll();
+    return [...tasks].sort(
+      (a, b) => a.createdAt.getTime() - b.createdAt.getTime() || a.id.localeCompare(b.id),
+    );
+  }
+
   async getRootTasks(): Promise<Task[]> {
     const roots = await this.repository.findByParentId(null);
     return this.sortByPosition(roots);

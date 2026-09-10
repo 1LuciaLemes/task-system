@@ -1,4 +1,4 @@
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useRef, useState } from 'react';
 import { CreateTaskInput } from '../types/task.js';
 import { validateTitleInput } from '../utils/validate.js';
 
@@ -12,6 +12,11 @@ export function InlineSubtaskForm({ onSubmit, onCancel }: InlineSubtaskFormProps
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [titleError, setTitleError] = useState<string | null>(null);
+  const titleRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    titleRef.current?.focus();
+  }, []);
 
   const handleTitleChange = (value: string) => {
     setTitle(value);
@@ -43,6 +48,7 @@ export function InlineSubtaskForm({ onSubmit, onCancel }: InlineSubtaskFormProps
     <form onSubmit={handleSubmit} className="flex flex-col gap-2">
       <div>
         <input
+          ref={titleRef}
           type="text"
           value={title}
           onChange={(event) => handleTitleChange(event.target.value)}

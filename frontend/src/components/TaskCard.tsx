@@ -1,4 +1,4 @@
-import { DragEvent, Fragment, useEffect, useRef, useState } from 'react';
+import { DragEvent, Fragment, MouseEvent, useEffect, useRef, useState } from 'react';
 import { CreateTaskInput, Task, TaskKind, TaskStatus } from '../types/task.js';
 import { getAncestorIds, isPartiallyComplete, SubtreeStats, TaskNode } from '../utils/tree.js';
 import { STATUS_LABELS } from '../utils/labels.js';
@@ -52,7 +52,10 @@ export function TaskCard({
   onMoveTask,
 }: TaskCardProps) {
   const [showAddForm, setShowAddForm] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuStyle, setMenuStyle] = useState<{
+    top: number;
+    right: number;
+  } | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [scrollVisible, setScrollVisible] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -90,9 +93,22 @@ export function TaskCard({
   }, [focused, onFocusConsumed]);
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    if (!menuStyle) {
+      return;
+    }
+    const close = () => setMenuStyle(null);
+    window.addEventListener('scroll', close, true);
+    window.addEventListener('resize', close);
+    return () => {
+      window.removeEventListener('scroll', close, true);
+      window.removeEventListener('resize', close);
+    };
+  }, [menuStyle]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: globalThis.MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setMenuOpen(false);
+        setMenuStyle(null);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -323,7 +339,17 @@ export function TaskCard({
             <div ref={menuRef} className="relative">
               <button
                 type="button"
-                onClick={() => setMenuOpen((value) => !value)}
+                onClick={(event: MouseEvent<HTMLButtonElement>) => {
+                  const rect = event.currentTarget.getBoundingClientRect();
+                  setMenuStyle((current) =>
+                    current
+                      ? null
+                      : {
+                          top: rect.bottom + 4,
+                          right: window.innerWidth - rect.right,
+                        },
+                  );
+                }}
                 className="flex h-7 w-7 items-center justify-center rounded-lg text-ink-soft hover:bg-slate-100"
                 title="Acciones"
               >
@@ -333,12 +359,15 @@ export function TaskCard({
                   <circle cx="19" cy="12" r="1.6" />
                 </svg>
               </button>
-              {menuOpen ? (
-                <div className="absolute right-0 top-full z-20 mt-1 w-36 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
+              {menuStyle ? (
+                <div
+                  className="fixed z-50 w-36 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg"
+                  style={{ top: menuStyle.top, right: menuStyle.right }}
+                >
                   <button
                     type="button"
                     onClick={() => {
-                      setMenuOpen(false);
+                      setMenuStyle(null);
                       onRequestEdit(task);
                     }}
                     className="block w-full px-3 py-2 text-left text-sm text-ink hover:bg-slate-50"
@@ -348,7 +377,7 @@ export function TaskCard({
                   <button
                     type="button"
                     onClick={() => {
-                      setMenuOpen(false);
+                      setMenuStyle(null);
                       onRequestDelete(task);
                     }}
                     className="block w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50"

@@ -450,11 +450,35 @@ Restricciones:
 - NO commitear ni pushear nada.
 ```
 
+### 8. Diferenciación visual entre tareas principales y subtareas
+
+```
+Quiero diferenciar visualmente las tareas principales de las subtareas, incluso cuando
+una tarea principal está anidada dentro de otra tarea principal.
+
+Agregá un campo `kind` (MAIN | SUBTASK) al modelo de tareas de punta a punta
+(backend y frontend):
+
+1. El `kind` se deriva automáticamente: `MAIN` para tareas raíz (sin parentTaskId)
+   y `SUBTASK` para tareas con parentTaskId. Validá el valor recibido al crear.
+2. La prioridad es solo relevante para tareas principales: mostrá el badge y el
+   selector de prioridad únicamente en tareas con `kind = MAIN`.
+3. Una tarea principal anidada dentro de otra se muestra como una mini-tarjeta
+   (con su propio badge de prioridad y su barra de progreso), mientras que las
+   subtareas comunes se muestran como filas compactas.
+4. Mantené el drag & drop y la creación de subtareas forzando el `kind` correcto
+   desde el frontend.
+5. Actualizá los tests de backend y frontend para cubrir la derivación de `kind`,
+   la validación de valores inválidos y el render condicional de prioridad.
+```
+
 Nota: después de la implementación se aplicaron modificaciones
 manuales de estilo y UX (prompt ejecutado por el desarrollador), que no
 se registran como prompts independientes: indicadores de estado más
 grandes y claros, ciclo de estado automático que promueve una tarea
 padre a "En progreso" cuando una subtarea se completa, scroll
-horizontal con arrastre del mouse, horas completadas/totales junto a los
-conteos, rediseño del resumen de esfuerzo con barras segmentadas,
-selects personalizados y ajustes de layout.
+horizontal con arrastre del mouse, rediseño del resumen de esfuerzo con
+barras segmentadas, selects personalizados y ajustes de layout y color
+azulado en los contenedores de progreso. La estimación en horas se
+eliminó de la vista porque no resultó funcional para el uso real de la
+aplicación.

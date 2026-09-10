@@ -18,6 +18,8 @@ interface TaskCardProps {
   children: TaskNode[];
   subtreeStats: Map<string, SubtreeStats>;
   focused?: boolean;
+  highlightedIds?: string[] | null;
+  searchHighlighted?: boolean;
   onFocusConsumed?: () => void;
   onOpen: (task: Task) => void;
   onRequestEdit: (task: Task) => void;
@@ -38,6 +40,8 @@ export function TaskCard({
   children,
   subtreeStats,
   focused = false,
+  highlightedIds = null,
+  searchHighlighted = false,
   onFocusConsumed,
   onOpen,
   onRequestEdit,
@@ -180,8 +184,8 @@ export function TaskCard({
       draggable
       onDragStart={handleDragStart}
       data-drop-target
-      className={`flex max-h-full w-[300px] shrink-0 flex-col rounded-2xl border border-slate-300 bg-white shadow-sm transition-shadow ${
-        dragOver ? 'ring-2 ring-brand ring-offset-1' : ''
+      className={`flex max-h-full w-[300px] shrink-0 flex-col rounded-2xl border bg-white shadow-sm transition-shadow ${
+        searchHighlighted || dragOver ? 'border-brand ring-2 ring-brand' : 'border-slate-300'
       } ${
         draggedId === task.id ? 'opacity-40' : ''
       }`}
@@ -274,6 +278,8 @@ export function TaskCard({
                       ? subtreeStats.get(child.id) ?? { total: 0, complete: 0 }
                       : undefined
                   }
+                  highlightedIds={highlightedIds}
+                  highlightScrollOnMount={false}
                   onOpen={onOpen}
                   onEdit={onEdit}
                   onCycleStatus={onCycleStatus}

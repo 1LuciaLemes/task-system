@@ -18,6 +18,7 @@ interface DetailModalProps {
   allTasks: Task[];
   subtreeStats: Map<string, SubtreeStats>;
   initialEdit: boolean;
+  highlightSubtaskId?: string | null;
   onClose: () => void;
   onOpen: (task: Task) => void;
   onEdit: (task: Task) => void;
@@ -38,6 +39,7 @@ export function DetailModal({
   allTasks,
   subtreeStats,
   initialEdit,
+  highlightSubtaskId = null,
   onClose,
   onOpen,
   onEdit,
@@ -287,6 +289,7 @@ export function DetailModal({
                           : undefined
                       }
                       subtreeStats={subtreeStats}
+                      highlightedIds={highlightSubtaskId ? [highlightSubtaskId] : null}
                       onOpen={onOpen}
                       onEdit={onEdit}
                       onCycleStatus={onCycleStatus}

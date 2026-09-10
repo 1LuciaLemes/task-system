@@ -8,14 +8,17 @@ import {
 } from '../types/task.js';
 import { TaskCard } from '../components/TaskCard.js';
 import { MobileTaskCard } from '../components/MobileTaskCard.js';
+import { GlobalSearch } from '../components/GlobalSearch.js';
 import { ConfirmDialog } from '../components/ConfirmDialog.js';
 import { DetailModal } from '../components/DetailModal.js';
 import { CreateTaskModal } from '../components/CreateTaskModal.js';
 import { computeSubtreeStats, buildTaskTree, findNodeById } from '../utils/tree.js';
+import type { TaskNode } from '../utils/tree.js';
 import { buildDeleteMessage } from '../utils/confirm.js';
 import { PRIORITY_DOT_CLASSES, PRIORITY_LABELS, PriorityFilter, SortBy, SORT_LABELS, ViewFilter } from '../utils/labels.js';
 import { DropIndicator } from '../components/DropIndicator.js';
 import { useDragState } from '../state/DragState.js';
+import { searchTasks } from '../utils/taskSearch.js';
 
 interface BoardLeadingDropZoneProps {
   over: boolean;
@@ -64,7 +67,7 @@ function BoardLeadingDropZone({
   );
 }
 
-const BOARD_PAGE_SIZE = 7;
+const PAGE_SIZE = 6;
 
 interface DashboardProps {
   tasks: Task[];
@@ -112,7 +115,9 @@ export function Dashboard({
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<Task | null>(null);
   const [focusedId, setFocusedId] = useState<string | null>(null);
-  const [boardLimit, setBoardLimit] = useState(BOARD_PAGE_SIZE);
+  const [highlightSubtaskId, setHighlightSubtaskId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const tree = useMemo(() => buildTaskTree(tasks), [tasks]);
   const subtreeStats = useMemo(() => computeSubtreeStats(tasks), [tasks]);
@@ -136,8 +141,71 @@ export function Dashboard({
     return roots;
   }, [tree, view, priorityFilter, sortBy]);
 
-  const renderedRoots = visibleRoots.slice(0, boardLimit);
-  const remaining = visibleRoots.length - renderedRoots.length;
+  const pageCount = Math.max(1, Math.ceil(visibleRoots.length / PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const renderedRoots = visibleRoots.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE,
+  );
+
+  const searchActive = searchQuery.trim().length > 0;
+
+  const searchMatches = useMemo(
+    () => (searchActive ? searchTasks(tasks, searchQuery) : []),
+    [tasks, searchQuery, searchActive],
+  );
+
+  const taskById = useMemo(
+    () => new Map(tasks.map((task) => [task.id, task])),
+    [tasks],
+  );
+
+  const matchesByRoot = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const { task } of searchMatches) {
+      let current: Task | undefined = task;
+      while (current?.parentTaskId) {
+        const next = taskById.get(current.parentTaskId);
+        if (!next) {
+          break;
+        }
+        current = next;
+      }
+      if (!current) {
+        continue;
+      }
+      const list = map.get(current.id) ?? [];
+      list.push(task.id);
+      map.set(current.id, list);
+    }
+    return map;
+  }, [searchMatches, taskById]);
+
+  const searchRoots = useMemo(() => {
+    const seen = new Set<string>();
+    const roots: TaskNode[] = [];
+    for (const { task } of searchMatches) {
+      let current: Task | undefined = task;
+      while (current?.parentTaskId) {
+        const next = taskById.get(current.parentTaskId);
+        if (!next) {
+          break;
+        }
+        current = next;
+      }
+      if (!current || seen.has(current.id)) {
+        continue;
+      }
+      seen.add(current.id);
+      const node = tree.find((item) => item.id === current.id);
+      if (node) {
+        roots.push(node);
+      }
+    }
+    return roots;
+  }, [searchMatches, taskById, tree]);
+
+  const boardRoots = searchActive ? searchRoots : renderedRoots;
 
   const selectedTask = selectedTaskId
     ? tasks.find((task) => task.id === selectedTaskId) ?? null
@@ -179,15 +247,17 @@ export function Dashboard({
     if (max > 0) {
       showBar();
     }
-  }, [visibleRoots, boardLimit]);
+  }, [visibleRoots, currentPage]);
 
   useEffect(() => {
-    const el = boardRef.current;
-    if (!el) {
-      return;
+    setPage(1);
+  }, [visibleRoots]);
+
+  useEffect(() => {
+    if (page > pageCount) {
+      setPage(pageCount);
     }
-    el.scrollLeft = el.scrollWidth;
-  }, [boardLimit]);
+  }, [pageCount]);
 
   const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) {
@@ -289,7 +359,38 @@ export function Dashboard({
     }
     setSelectedTaskId(task.id);
     setEditMode(edit);
+    if (searchActive && !task.parentTaskId) {
+      const matches = matchesByRoot.get(task.id);
+      const firstMatch = matches?.find((id) => id !== task.id);
+      setHighlightSubtaskId(firstMatch ?? null);
+    } else {
+      setHighlightSubtaskId(null);
+    }
   };
+
+  const goToPage = (target: number) => {
+    setPage(Math.min(Math.max(1, target), pageCount));
+  };
+
+  const pageNumbers = useMemo(() => {
+    if (pageCount <= 7) {
+      return Array.from({ length: pageCount }, (_, index) => index + 1);
+    }
+    const list: (number | 'ellipsis')[] = [1];
+    const start = Math.max(2, currentPage - 1);
+    const end = Math.min(pageCount - 1, currentPage + 1);
+    if (start > 2) {
+      list.push('ellipsis');
+    }
+    for (let number = start; number <= end; number += 1) {
+      list.push(number);
+    }
+    if (end < pageCount - 1) {
+      list.push('ellipsis');
+    }
+    list.push(pageCount);
+    return list;
+  }, [pageCount, currentPage]);
 
   const handleCreateTask = async (input: CreateTaskInput): Promise<Task> => {
     const created = await onCreateTask(input);
@@ -332,9 +433,76 @@ export function Dashboard({
   ).length;
   const pendingCount = tasks.length - completeCount;
 
+  const pageNumberButtons = (
+    <div className="ml-auto flex shrink-0 items-center gap-0.5">
+      <button
+        type="button"
+        onClick={() => goToPage(currentPage - 1)}
+        disabled={currentPage === 1}
+        className="flex h-7 w-7 items-center justify-center rounded-lg text-sm text-ink-soft hover:bg-slate-100 disabled:opacity-40"
+        aria-label="Página anterior"
+      >
+        ‹
+      </button>
+      {pageNumbers.map((item, index) =>
+        item === 'ellipsis' ? (
+          <span key={`ellipsis-${index}`} className="px-1 text-xs text-ink-faint">
+            …
+          </span>
+        ) : (
+          <button
+            key={item}
+            type="button"
+            onClick={() => goToPage(item)}
+            className={`flex h-7 w-7 items-center justify-center rounded-lg text-xs font-medium tabular-nums transition-colors ${
+              item === currentPage
+                ? 'bg-brand text-white'
+                : 'text-ink-soft hover:bg-slate-100'
+            }`}
+          >
+            {item}
+          </button>
+        ),
+      )}
+      <button
+        type="button"
+        onClick={() => goToPage(currentPage + 1)}
+        disabled={currentPage === pageCount}
+        className="flex h-7 w-7 items-center justify-center rounded-lg text-sm text-ink-soft hover:bg-slate-100 disabled:opacity-40"
+        aria-label="Página siguiente"
+      >
+        ›
+      </button>
+    </div>
+  );
+
+  const navigateButton = (target: number, label: string, icon: string) => (
+    <button
+      type="button"
+      onClick={() => goToPage(target)}
+      disabled={target === currentPage}
+      className="flex h-8 w-8 items-center justify-center rounded-lg text-sm text-ink-soft hover:bg-slate-100 disabled:opacity-40"
+      aria-label={label}
+    >
+      {icon}
+    </button>
+  );
+
+  const mobilePageNav = (
+    <div className="mt-2 flex items-center justify-between border-t border-slate-100 pt-2">
+      <span className="text-xs text-ink-faint">
+        Página {currentPage} de {pageCount}
+      </span>
+      <div className="flex items-center gap-1">
+        {navigateButton(currentPage - 1, 'Página anterior', '‹')}
+        {navigateButton(currentPage + 1, 'Página siguiente', '›')}
+      </div>
+    </div>
+  );
+
   return (
     <div className="flex min-w-0 flex-1 flex-col bg-board">
-      <header className="flex flex-col gap-3 pb-6 pl-4 pr-4 pt-10 sm:px-8 lg:flex-row lg:items-center lg:justify-between lg:pl-4 lg:pr-16">
+      <header className="flex flex-col gap-3 pb-6 pl-4 pr-4 pt-10 sm:px-8 lg:flex-row lg:items-center lg:justify-between lg:pl-4 lg:pr-16 lg:pt-6">
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -355,13 +523,20 @@ export function Dashboard({
             </p>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={() => setShowCreateModal(true)}
-          className="rounded-xl bg-ink px-5 py-2.5 text-base font-medium text-white shadow-sm hover:bg-black lg:shrink-0"
-        >
-          + Nueva tarea
-        </button>
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-4">
+          <GlobalSearch
+            value={searchQuery}
+            onChange={setSearchQuery}
+            className="w-full lg:w-64"
+          />
+          <button
+            type="button"
+            onClick={() => setShowCreateModal(true)}
+            className="w-full rounded-xl bg-ink px-5 py-2.5 text-base font-medium text-white shadow-sm hover:bg-black lg:w-auto lg:shrink-0"
+          >
+            + Nueva tarea
+          </button>
+        </div>
       </header>
 
       <div className="px-4 pb-5 sm:px-8 lg:pl-4 lg:pr-16">
@@ -402,6 +577,7 @@ export function Dashboard({
                 </button>
               ))}
             </div>
+            {pageCount > 1 && !searchActive ? mobilePageNav : null}
           </div>
           <div className="hidden flex-wrap items-center gap-2 lg:flex">
             {Object.entries(SORT_LABELS).map(([key, label]) => (
@@ -436,6 +612,7 @@ export function Dashboard({
                 {value === 'all' ? 'Todas' : PRIORITY_LABELS[value]}
               </button>
             ))}
+            {pageCount > 1 && !searchActive ? pageNumberButtons : null}
           </div>
         </div>
       </div>
@@ -466,7 +643,7 @@ export function Dashboard({
           dragging ? 'cursor-grabbing' : 'cursor-grab'
         }`}
       >
-        {sortBy === 'position' && visibleRoots.length > 0 ? (
+        {!searchActive && sortBy === 'position' && visibleRoots.length > 0 ? (
           <BoardLeadingDropZone
             over={leadingOver}
             onOverChange={setLeadingOver}
@@ -475,12 +652,23 @@ export function Dashboard({
         ) : null}
         {loading && tasks.length === 0 ? (
           <p className="text-sm text-ink-faint">Cargando tareas...</p>
-        ) : visibleRoots.length === 0 ? (
-          <p className="text-sm text-ink-faint">{emptyMessage}</p>
+        ) : boardRoots.length === 0 ? (
+          <p className="text-sm text-ink-faint">
+            {searchActive
+              ? `Sin resultados para "${searchQuery.trim()}".`
+              : emptyMessage}
+          </p>
         ) : (
           <>
+            {searchActive ? (
+              <p className="pb-3 text-sm text-ink-soft">
+                {searchMatches.length === 1
+                  ? `1 resultado para "${searchQuery.trim()}"`
+                  : `${searchMatches.length} resultados para "${searchQuery.trim()}"`}
+              </p>
+            ) : null}
             <div className="flex flex-col gap-3 pb-4 lg:hidden">
-              {renderedRoots.map((root) => (
+              {boardRoots.map((root) => (
                 <MobileTaskCard
                   key={root.id}
                   task={root}
@@ -507,9 +695,9 @@ export function Dashboard({
                   : ''
               }`}
             >
-              {renderedRoots.map((root, index) => (
+              {boardRoots.map((root, index) => (
                 <Fragment key={root.id}>
-                  {index === 0 && sortBy === 'position' ? (
+                  {!searchActive && index === 0 && sortBy === 'position' ? (
                     <div
                       className={`shrink-0 py-1 transition-[width] duration-150 ${
                         leadingOver ? 'w-[300px]' : 'w-0'
@@ -524,7 +712,7 @@ export function Dashboard({
                     </div>
                   ) : null}
                   {index > 0 ? (
-                    sortBy === 'position' ? (
+                    sortBy === 'position' && !searchActive ? (
                       <DropIndicator
                         index={index}
                         onDrop={handleRootIndicatorDrop}
@@ -547,6 +735,15 @@ export function Dashboard({
                     subtreeStats={subtreeStats}
                     focused={focusedId === root.id}
                     onFocusConsumed={() => setFocusedId(null)}
+                    highlightedIds={
+                      searchActive
+                        ? (matchesByRoot.get(root.id) ?? null)
+                        : null
+                    }
+                    searchHighlighted={
+                      searchActive &&
+                      (matchesByRoot.get(root.id)?.includes(root.id) ?? false)
+                    }
                     onOpen={(task) => handleOpenDetail(task, false)}
                     onRequestEdit={(task) => handleOpenDetail(task, true)}
                     onEdit={(task) => handleOpenDetail(task, true)}
@@ -557,7 +754,7 @@ export function Dashboard({
                   />
                 </Fragment>
               ))}
-              {sortBy === 'position' ? (
+              {!searchActive && sortBy === 'position' ? (
                 <DropIndicator
                   index={visibleRoots.length}
                   onDrop={handleRootIndicatorDrop}
@@ -570,32 +767,7 @@ export function Dashboard({
                   lineClassName="h-full w-0.5"
                 />
               ) : null}
-              {remaining > 0 ? (
-                <button
-                  type="button"
-                  onClick={() =>
-                    setBoardLimit((value) => value + BOARD_PAGE_SIZE)
-                  }
-                  className="ml-2 hidden h-11 shrink-0 items-center self-start rounded-xl border border-slate-300 bg-white px-4 text-sm font-medium text-brand shadow-sm hover:bg-brand-light lg:flex"
-                >
-                  Cargar más
-                </button>
-              ) : null}
             </div>
-
-            {remaining > 0 ? (
-              <div className="pt-3 lg:hidden">
-                <button
-                  type="button"
-                  onClick={() =>
-                    setBoardLimit((value) => value + BOARD_PAGE_SIZE)
-                  }
-                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-brand hover:bg-brand-light"
-                >
-                  Cargar más ({remaining} restantes)
-                </button>
-              </div>
-            ) : null}
 
             {boardScroll.max > 0 ? (
               <div
@@ -635,7 +807,11 @@ export function Dashboard({
           allTasks={tasks}
           subtreeStats={subtreeStats}
           initialEdit={editMode}
-          onClose={() => setSelectedTaskId(null)}
+          highlightSubtaskId={highlightSubtaskId}
+          onClose={() => {
+            setSelectedTaskId(null);
+            setHighlightSubtaskId(null);
+          }}
           onOpen={(task) => handleOpenDetail(task, false)}
           onEdit={(task) => handleOpenDetail(task, true)}
           onUpdate={onUpdateTask}

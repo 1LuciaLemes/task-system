@@ -17,6 +17,8 @@ interface SubtaskRowProps {
   variant?: 'row' | 'card';
   stats?: { total: number; complete: number };
   subtreeStats?: Map<string, SubtreeStats>;
+  highlightedIds?: string[] | null;
+  highlightScrollOnMount?: boolean;
   onOpen: (task: Task) => void;
   onEdit: (task: Task) => void;
   onCycleStatus: (task: Task) => void;
@@ -29,6 +31,18 @@ interface SubtaskRowProps {
   ) => void;
 }
 
+function containsTaskId(nodes: TaskNode[], id: string): boolean {
+  for (const node of nodes) {
+    if (node.id === id) {
+      return true;
+    }
+    if (containsTaskId(node.children, id)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 export function SubtaskRow({
   task,
   children,
@@ -36,6 +50,8 @@ export function SubtaskRow({
   variant = 'row',
   stats,
   subtreeStats,
+  highlightedIds = null,
+  highlightScrollOnMount = true,
   onOpen,
   onEdit,
   onCycleStatus,
@@ -43,7 +59,10 @@ export function SubtaskRow({
   onRequestDelete,
   onMoveTask,
 }: SubtaskRowProps) {
-  const [collapsed, setCollapsed] = useState(true);
+  const [collapsed, setCollapsed] = useState(
+    () =>
+      !highlightedIds?.some((id) => containsTaskId(children, id)),
+  );
   const [showAddForm, setShowAddForm] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [menuStyle, setMenuStyle] = useState<{
@@ -52,7 +71,16 @@ export function SubtaskRow({
     up: boolean;
   } | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
   const { draggedId, beginDrag } = useDragState();
+
+  const isHighlighted = highlightedIds?.includes(task.id) ?? false;
+
+  useEffect(() => {
+    if (isHighlighted && highlightScrollOnMount && rootRef.current) {
+      rootRef.current.scrollIntoView({ block: 'center' });
+    }
+  }, [isHighlighted, highlightScrollOnMount, task.id]);
 
   const toggleMenu = (event: MouseEvent<HTMLButtonElement>) => {
     if (menuStyle) {
@@ -147,6 +175,7 @@ export function SubtaskRow({
 
   return (
     <div
+      ref={rootRef}
       onDragOver={handleDragOver}
       onDragLeave={() => setDragOver(false)}
       onDrop={handleDrop}
@@ -154,10 +183,12 @@ export function SubtaskRow({
       className={`transition-colors ${
         variant === 'card'
           ? `rounded-xl border bg-white p-2.5 shadow-sm ${
-              dragOver ? 'border-brand ring-1 ring-brand' : 'border-slate-200'
+              dragOver || isHighlighted
+                ? 'border-brand ring-1 ring-brand'
+                : 'border-slate-200'
             }`
           : `rounded-xl border bg-white ${
-              dragOver
+              dragOver || isHighlighted
                 ? 'border-brand bg-brand-light ring-1 ring-brand'
                 : 'border-slate-200'
             }`
@@ -169,9 +200,9 @@ export function SubtaskRow({
         className={`group transition-colors active:cursor-grabbing ${
           variant === 'card'
             ? 'flex cursor-grab flex-col gap-1.5 rounded-lg'
-            : `flex cursor-grab items-center gap-1.5 rounded-lg py-1.5 hover:bg-slate-50 ${
-                dragOver ? 'bg-brand-light' : ''
-              }`
+            : `flex cursor-grab items-center gap-1.5 rounded-lg py-1.5 ${
+                isHighlighted ? 'hover:bg-brand-deep/10' : 'hover:bg-slate-50'
+              } ${dragOver ? 'bg-brand-light' : ''}`
         } ${draggedId === task.id ? 'opacity-40' : ''}`}
         style={{ paddingLeft: variant === 'card' ? 0 : `${4 + depth * 14}px` }}
       >
@@ -361,6 +392,8 @@ export function SubtaskRow({
                     : undefined
                 }
                 subtreeStats={subtreeStats}
+                highlightedIds={highlightedIds}
+                highlightScrollOnMount={highlightScrollOnMount}
                 onOpen={onOpen}
                 onEdit={onEdit}
                 onCycleStatus={onCycleStatus}

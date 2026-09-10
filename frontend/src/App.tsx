@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Sidebar } from './components/Sidebar.js';
 import { Dashboard } from './pages/Dashboard.js';
 import { useTasks } from './hooks/useTasks.js';
-import { CreateTaskInput, Task, TaskKind, TaskStatus, UpdateTaskInput } from './types/task.js';
+import { CreateTaskInput, Task, TaskKind, TaskPriority, TaskStatus, UpdateTaskInput } from './types/task.js';
 import { PriorityFilter, SortBy, ViewFilter } from './utils/labels.js';
 
 export function App() {
@@ -53,9 +53,13 @@ export function App() {
     newParentId: string | null,
     position?: number,
   ): Promise<void> => {
+    const current = tasks.find((task) => task.id === taskId);
     const input: UpdateTaskInput = { parentTaskId: newParentId };
     if (position !== undefined) {
       input.position = position;
+    }
+    if (current?.parentTaskId && newParentId === null) {
+      input.priority = TaskPriority.MEDIUM;
     }
     await updateTask(taskId, input);
   };

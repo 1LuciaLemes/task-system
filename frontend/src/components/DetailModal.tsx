@@ -230,11 +230,6 @@ export function DetailModal({
                   </p>
                 </div>
               ) : null}
-
-              <div className="mt-4 text-xs text-ink-faint">
-                Creada el {formatDate(task.createdAt)} · Actualizada el{' '}
-                {formatDate(task.updatedAt)}
-              </div>
             </>
           )}
 
@@ -309,6 +304,13 @@ export function DetailModal({
               </div>
             ) : null}
           </div>
+
+          {!editing ? (
+            <div className="mt-6 border-t border-slate-100 pt-4 text-xs text-ink-faint">
+              Creada el {formatDate(task.createdAt)} · Actualizada el{' '}
+              {formatDate(task.updatedAt)}
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

@@ -326,7 +326,10 @@ export function SubtaskRow({
       {showAddForm ? (
         <div
           className="mt-3 w-full pb-2"
-          style={{ paddingLeft: `${4 + (depth + 1) * 14}px` }}
+          style={{
+            paddingLeft: `${4 + (depth + 1) * 14}px`,
+            paddingRight: `${4 + (depth + 1) * 14}px`,
+          }}
         >
           <InlineSubtaskForm
             onSubmit={(input) => {

@@ -13,7 +13,7 @@ export const STATUS_LABELS: Record<TaskStatus, string> = {
 };
 
 export const PRIORITY_BADGE_CLASSES: Record<TaskPriority, string> = {
-  [TaskPriority.LOW]: 'bg-emerald-100 text-emerald-800',
+  [TaskPriority.LOW]: 'bg-slate-100 text-slate-700',
   [TaskPriority.MEDIUM]: 'bg-amber-100 text-amber-800',
   [TaskPriority.HIGH]: 'bg-red-100 text-red-800',
 };

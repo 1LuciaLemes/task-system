@@ -27,7 +27,7 @@ export function StatusDot({ status, size = 'md' }: StatusDotProps) {
   if (status === TaskStatus.IN_PROGRESS) {
     return (
       <span
-        className={`inline-flex items-center justify-center rounded-full bg-slate-600 ${SIZE_CLASSES[size]}`}
+        className={`inline-flex items-center justify-center rounded-full bg-slate-300 ${SIZE_CLASSES[size]}`}
         aria-label="En progreso"
       />
     );

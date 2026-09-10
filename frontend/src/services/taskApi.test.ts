@@ -1,9 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { Task, TaskPriority, TaskStatus } from '../types/task.js';
+import { Task, TaskKind, TaskPriority, TaskStatus } from '../types/task.js';
 import { ApiError, createTask, deleteTask, getTasks, updateTask } from './taskApi.js';
 
 const TASK: Task = {
   id: '1',
+  kind: TaskKind.MAIN,
   title: 'Tarea',
   description: null,
   status: TaskStatus.PENDING,

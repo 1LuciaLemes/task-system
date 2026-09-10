@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { Task, TaskStatus } from '../types/task.js';
+import { Task, TaskKind, TaskStatus } from '../types/task.js';
 import { getEffortSummary, getSubtreeEstimate } from './effort.js';
 
 function makeTask(overrides: Partial<Task> & Pick<Task, 'id'>): Task {
   return {
+    kind: TaskKind.MAIN,
     title: 'Tarea',
     description: null,
     status: TaskStatus.PENDING,

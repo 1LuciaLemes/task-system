@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Task, TaskPriority, TaskStatus } from '../types/task.js';
+import { Task, TaskKind, TaskPriority, TaskStatus } from '../types/task.js';
 import {
   buildChildrenMap,
   buildTaskTree,
@@ -13,6 +13,7 @@ import {
 
 function makeTask(overrides: Partial<Task> & Pick<Task, 'id'>): Task {
   return {
+    kind: TaskKind.MAIN,
     title: 'Tarea',
     description: null,
     status: TaskStatus.PENDING,

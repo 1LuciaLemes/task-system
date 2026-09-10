@@ -10,8 +10,14 @@ export enum TaskPriority {
   HIGH = 'HIGH',
 }
 
+export enum TaskKind {
+  MAIN = 'MAIN',
+  SUBTASK = 'SUBTASK',
+}
+
 export interface Task {
   id: string;
+  kind: TaskKind;
   title: string;
   description: string | null;
   status: TaskStatus;
@@ -24,6 +30,7 @@ export interface Task {
 }
 
 export interface CreateTaskInput {
+  kind?: TaskKind;
   title: string;
   description?: string | null;
   status?: TaskStatus;
@@ -38,6 +45,7 @@ export interface UpdateTaskInput {
   status?: TaskStatus;
   priority?: TaskPriority;
   estimate?: number | null;
+  position?: number;
   parentTaskId?: string | null;
 }
 

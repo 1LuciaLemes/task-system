@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { Task, TaskPriority, TaskStatus } from '../types/task.js';
+import { Task, TaskKind, TaskPriority, TaskStatus } from '../types/task.js';
 import { buildDeleteMessage } from './confirm.js';
 
 function makeTask(id: string, overrides: Partial<Task> = {}): Task {
   return {
     id,
+    kind: TaskKind.MAIN,
     title: 'Tarea',
     description: null,
     status: TaskStatus.PENDING,

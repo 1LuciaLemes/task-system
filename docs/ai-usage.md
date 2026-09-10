@@ -361,3 +361,100 @@ Restricciones:
 Al finalizar corré tests y build, y mostrame: resumen, resultado de
 tests/build y decisiones pendientes.
 ```
+
+### 7. Implementación del frontend
+
+```
+Quiero implementar el frontend de la aplicación.
+
+Consultá y usá como fuente:
+- docs/requirements.md
+- docs/architecture.md
+
+Backend: API REST funcional en backend/ (Express + TS, repo en memoria),
+escuchando en http://localhost:3000. Endpoints: GET/POST /tasks y
+GET/PATCH/DELETE /tasks/:id. El front consumirá la API vía fetch (sin
+localStorage: todos los datos salen de la API).
+
+Tecnologías: React + TypeScript + Tailwind CSS + Vitest + Vite.
+Vite: build tool (instalarlo), con servidor proxy a http://localhost:3000.
+Integrar Tailwind (config ya existe).
+
+Implementá:
+
+1. Tipos y utilidades:
+   - TaskStatus/TaskPriority igual que el backend.
+   - Labels en español centralizados (Prioridad: Baja/Media/Alta; estados:
+     Pendiente/En progreso/Completada), con colores LOW verde / MEDIUM
+     amarillo / HIGH rojo.
+   - Utils: armado del árbol desde la lista plana, agenda de subtree
+     (completadas/total) para progreso, resumen de esfuerzo §10.
+
+2. Capa de datos:
+   - Cliente API tipado: getTasks, getTask, createTask, updateTask,
+     deleteTask (fetch, manejo de errores de la API).
+   - Hook useTasks: carga tareas y expone crear/actualizar/eliminar con
+     estado sincronizado.
+
+3. Estructura de pantalla (dashboard):
+   - Sidebar fija: brand, vistas Tablero/Pendientes/Completadas (filtro de
+     raíces por estado, NO rutas; sin react-router), y abajo barra de
+     progreso global del tablero (completadas/total, % y conteos).
+   - Header: título, botón "+ Nueva tarea".
+   - Franja resumen de esfuerzo §10 (Total/Pendiente/En progreso/Completada
+     en horas).
+   - Tablero: tareas raíz como columnas horizontales con scroll/snap.
+
+4. TaskCard (columna §11):
+   - Badge de prioridad NO editable a simple vista (Baja/Media/Alta con
+     colores), clave de acceso al detalle (clic → modal).
+   - Título (tachado si COMPLETE), descripción truncada, estimación "X h".
+   - Barrita de progreso del subárbol (completadas/total).
+   - Menú de acciones: editar, eliminar (con ConfirmDialog).
+   - Footer "+ Añadir subtarea" (inline).
+   - Subtareas como filas anidadas recursivas, colapsables.
+   - Estado visible en la tarjeta (Pendiente/En progreso/Completada).
+
+5. Modal de detalle (§13):
+   - Overlay + panel (max-h ~80vh), header fijo con título, status,
+     badge de prioridad, estimación, menú (editar/eliminar) y cerrar.
+   - Cuerpo con scroll interno: descripción + árbol de subtareas
+     (filas colapsables, mismo componente/estilo que la tarjeta) +
+     "+ Añadir subtarea" también acá.
+   - Edición en el mismo modal: al tocar "editar" el cuerpo cambia a modo
+     formulario (mismo componente de crear), con guardar/cancelar.
+   - Estado de navegación por tarea seleccionada (sin router).
+
+6. Crear/editar tarea (§12): formulario con title (obligatorio),
+   description, status, priority, estimate; confirmar/cancelar. Reutilizado
+   para crear raíz, crear subtarea y editar (raíz y cualquier nodo).
+
+7. ConfirmDialog compartido (§8): antes de eliminar; mensaje
+   "Tenés tareas incompletas, ¿aún así deseás eliminar la tarea X?" si hay
+   descendientes incompletos, o "Las subtareas también se eliminarán" si
+   están completas. El front ya tiene el árbol para saberlo.
+
+8. Estructura: frontend/src/{components,pages,services,hooks,types,utils}
+   + App.tsx + main.tsx. Navegación por estado (modal + filtro). Sin router.
+
+9. Tests Vitest: utils (labels, árbol, subtree stats, resumen) y cliente de
+   servicios con fetch mock.
+
+Restricciones:
+- No modifiques el backend; cambios menores (p.ej. CORS) se avisan y
+  confirman antes.
+- Funciones fuera de requirements.md NO (búsqueda, ordenamiento,
+  drag&drop, responsive) quedan como nice-to-have futuro.
+- Toda la interfaz en español; nombres de código en inglés.
+- Sin comentarios en el código.
+- NO commitear ni pushear nada.
+```
+
+Nota: después de la implementación se aplicaron modificaciones
+manuales de estilo y UX (prompt ejecutado por el desarrollador), que no
+se registran como prompts independientes: indicadores de estado más
+grandes y claros, ciclo de estado automático que promueve una tarea
+padre a "En progreso" cuando una subtarea se completa, scroll
+horizontal con arrastre del mouse, horas completadas/totales junto a los
+conteos, rediseño del resumen de esfuerzo con barras segmentadas,
+selects personalizados y ajustes de layout.

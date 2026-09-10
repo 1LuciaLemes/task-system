@@ -50,9 +50,29 @@ export function TaskCard({
   const [showAddForm, setShowAddForm] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [scrollVisible, setScrollVisible] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
+  const scrollHideTimer = useRef<number | null>(null);
   const { draggedId, beginDrag } = useDragState();
+
+  useEffect(() => {
+    return () => {
+      if (scrollHideTimer.current) {
+        window.clearTimeout(scrollHideTimer.current);
+      }
+    };
+  }, []);
+
+  const handleChildrenScroll = () => {
+    setScrollVisible(true);
+    if (scrollHideTimer.current) {
+      window.clearTimeout(scrollHideTimer.current);
+    }
+    scrollHideTimer.current = window.setTimeout(() => {
+      setScrollVisible(false);
+    }, 2500);
+  };
 
   useEffect(() => {
     if (focused && cardRef.current) {
@@ -83,6 +103,27 @@ export function TaskCard({
   const displayStatus = isPartiallyComplete(task, stats)
     ? TaskStatus.IN_PROGRESS
     : task.status;
+
+  const MAX_CHILDREN_VISIBLE = 4;
+  const ROW_HEIGHT = 44;
+  const CARD_ROW_HEIGHT = 120;
+  const INDICATOR_HEIGHT = 8;
+  const CHILDREN_PADDING = 32;
+  const childrenMaxHeight =
+    children.length > MAX_CHILDREN_VISIBLE
+      ? CHILDREN_PADDING +
+        children
+          .slice(0, MAX_CHILDREN_VISIBLE)
+          .reduce(
+            (sum, child) =>
+              sum +
+              INDICATOR_HEIGHT +
+              (child.kind === TaskKind.MAIN ? CARD_ROW_HEIGHT : ROW_HEIGHT),
+            0,
+          ) +
+        INDICATOR_HEIGHT
+      : undefined;
+  const childrenScrollable = childrenMaxHeight !== undefined;
 
   const handleDragStart = (event: DragEvent<HTMLDivElement>) => {
     event.stopPropagation();
@@ -139,7 +180,7 @@ export function TaskCard({
       draggable
       onDragStart={handleDragStart}
       data-drop-target
-      className={`flex w-[300px] max-h-full shrink-0 flex-col rounded-2xl border border-slate-300 bg-white shadow-sm transition-shadow ${
+      className={`flex max-h-full w-[300px] shrink-0 flex-col rounded-2xl border border-slate-300 bg-white shadow-sm transition-shadow ${
         dragOver ? 'ring-2 ring-brand ring-offset-1' : ''
       } ${
         draggedId === task.id ? 'opacity-40' : ''
@@ -148,7 +189,7 @@ export function TaskCard({
       onDragLeave={() => setDragOver(false)}
       onDrop={handleDrop}
     >
-      <div className="cursor-pointer px-4 pb-3 pt-4" onClick={() => onOpen(task)}>
+      <div className="cursor-pointer p-4" onClick={() => onOpen(task)}>
         <div className="flex items-start gap-2">
           <button
             type="button"
@@ -208,7 +249,13 @@ export function TaskCard({
       </div>
 
       {directChildrenCount > 0 ? (
-        <div className="min-h-0 flex-1 overflow-y-auto rounded-b-2xl border-t border-slate-200 bg-slate-50 pb-4 pl-2 pr-3 pt-2">
+        <div
+          className={`min-h-0 flex-1 overflow-y-auto rounded-b-2xl border-t border-slate-200 bg-slate-50 p-4 ${
+            childrenScrollable ? 'card-scroll' : ''
+          } ${childrenScrollable && scrollVisible ? 'card-scroll-visible' : ''}`}
+          style={childrenMaxHeight ? { maxHeight: childrenMaxHeight } : undefined}
+          onScroll={childrenScrollable ? handleChildrenScroll : undefined}
+        >
           <div className="flex flex-col">
             {children.map((child, index) => (
               <Fragment key={child.id}>
@@ -246,7 +293,7 @@ export function TaskCard({
       ) : null}
 
       <div
-        className={`relative border-t border-slate-100 px-3 py-2.5 ${
+        className={`relative border-t border-slate-100 p-4 ${
           showAddForm ? '' : 'flex items-center justify-between gap-2'
         }`}
       >

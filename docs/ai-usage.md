@@ -482,3 +482,20 @@ barras segmentadas, selects personalizados y ajustes de layout y color
 azulado en los contenedores de progreso. La estimación en horas se
 eliminó de la vista porque no resultó funcional para el uso real de la
 aplicación.
+
+### 9. Persistencia con PostgreSQL y Docker Compose
+
+```
+Implementá la persistencia con PostgreSQL y el montaje con Docker Compose para el proyecto Task System, sin modificar la lógica de negocio del backend.
+
+1. Creá `backend/src/repositories/pgTaskRepository.ts` que implemente la interfaz `TaskRepository` (insert, findById, findAll, findByParentId, update, delete) usando `pg` con `Pool`. Los nombres de columnas serán snake_case y el repositorio mapeará hacia el modelo `Task` existente (camelCase, tipos en `backend/src/types/`).
+2. Creá `backend/src/db/pool.ts` que exporte un Pool configurado con `DATABASE_URL` (incluye `ssl` solo si la variable lo indica).
+3. Creá `backend/db/schema.sql`: tabla `tasks` con `id` (uuid/text), `title`, `description`, `status`, `priority`, `estimate`, `parent_task_id` (auto-referencia con `ON DELETE CASCADE`), `position`, `created_at`, `updated_at`, e índices para `parent_task_id` y `position`. Quedará montada automáticamente en el contenedor de Postgres.
+4. Modificá `backend/src/server.ts` para elegir el repositorio según el entorno: si existe `DATABASE_URL` usar `PgTaskRepository`, si no, mantener `InMemoryTaskRepository`. No cambies `createApp` ni los tests.
+5. Agregá `pg` a dependencias y `@types/pg` a devDependencies del backend.
+6. Creá `docker-compose.yml` en la raíz con tres servicios: `postgres` (con el volumen que monte `backend/db/schema.sql`, healthcheck), `backend` (node, expone 3000, depende de postgres healthy, `DATABASE_URL` apuntando al servicio postgres) y `frontend` (sirve el build de Vite, expone 5173/80).
+7. Creá los `Dockerfile` de backend y frontend, y un `.env.example` con `DATABASE_URL`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `PORT`.
+8. Reescribí `README.md` en español: requisitos, cómo correr con `docker compose up`, variables de entorno y cómo correr backend/frontend en modo local sin Docker.
+9. Verificá: `npm run build` y `npm test` en la raíz pasan (los tests siguen con el repo en memoria), y `docker compose config` valida el archivo.
+10. NO commitees nada hasta que yo lo pida.
+```

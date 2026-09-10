@@ -124,7 +124,7 @@ export function TaskCard({
     ? TaskStatus.IN_PROGRESS
     : task.status;
 
-  const MAX_CHILDREN_VISIBLE = 4;
+  const MAX_CHILDREN_VISIBLE = 5;
   const ROW_HEIGHT = 44;
   const CARD_ROW_HEIGHT = 120;
   const INDICATOR_HEIGHT = 8;
@@ -143,7 +143,6 @@ export function TaskCard({
           ) +
         INDICATOR_HEIGHT
       : undefined;
-  const childrenScrollable = childrenMaxHeight !== undefined;
 
   const handleDragStart = (event: DragEvent<HTMLDivElement>) => {
     event.stopPropagation();
@@ -270,11 +269,11 @@ export function TaskCard({
 
       {directChildrenCount > 0 ? (
         <div
-          className={`min-h-0 flex-1 overflow-y-auto rounded-b-2xl border-t border-slate-200 bg-slate-50 p-4 ${
-            childrenScrollable ? 'card-scroll' : ''
-          } ${childrenScrollable && scrollVisible ? 'card-scroll-visible' : ''}`}
+          className={`min-h-0 flex-1 overflow-y-auto rounded-b-2xl border-t border-slate-200 bg-slate-50 p-4 card-scroll ${
+            scrollVisible ? 'card-scroll-visible' : ''
+          }`}
           style={childrenMaxHeight ? { maxHeight: childrenMaxHeight } : undefined}
-          onScroll={childrenScrollable ? handleChildrenScroll : undefined}
+          onScroll={handleChildrenScroll}
         >
           <div className="flex flex-col">
             {children.map((child, index) => (

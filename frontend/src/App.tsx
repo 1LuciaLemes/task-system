@@ -107,7 +107,7 @@ export function App() {
   };
 
   return (
-    <div className="relative flex min-h-screen bg-board text-ink">
+    <div className="relative flex h-screen overflow-hidden bg-board text-ink">
       <Sidebar
         className="hidden w-64 lg:sticky lg:top-6 lg:ml-16 lg:flex"
         {...sidebarProps}
@@ -127,7 +127,7 @@ export function App() {
         </div>
       ) : null}
 
-      <main className="flex min-w-0 flex-1">
+      <main className="flex min-w-0 flex-1 overflow-y-auto lg:overflow-hidden">
         <Dashboard
           tasks={tasks}
           loading={loading}

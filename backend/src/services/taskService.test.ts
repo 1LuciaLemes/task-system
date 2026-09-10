@@ -144,6 +144,62 @@ describe('TaskService - actualización', () => {
     await expect(service.updateTask(task.id, { title: '   ' })).rejects.toThrow(ValidationError);
     await expect(service.updateTask(task.id, { estimate: -5 })).rejects.toThrow(ValidationError);
   });
+
+  it('mueve una subtarea a otro padre y asigna posición al final', async () => {
+    const { service } = setup();
+    const a = await service.createTask({ title: 'A' });
+    const b = await service.createTask({ title: 'B' });
+    const sub = await service.createTask({ title: 'Sub', parentTaskId: a.id });
+    await service.createTask({ title: 'Sibling', parentTaskId: b.id });
+
+    const updated = await service.updateTask(sub.id, { parentTaskId: b.id });
+
+    expect(updated?.parentTaskId).toBe(b.id);
+    const siblings = await service.getSubtasks(b.id);
+    expect(siblings.map((task) => task.id)).toEqual(expect.arrayContaining([updated?.id]));
+    expect(updated?.position).toBe(Math.max(...siblings.map((task) => task.position)));
+  });
+
+  it('mueve una subtarea a la raíz con parentTaskId null', async () => {
+    const { service } = setup();
+    const a = await service.createTask({ title: 'A' });
+    const sub = await service.createTask({ title: 'Sub', parentTaskId: a.id });
+
+    const updated = await service.updateTask(sub.id, { parentTaskId: null });
+
+    expect(updated?.parentTaskId).toBeNull();
+    expect((await service.getRootTasks()).map((task) => task.id)).toContain(sub.id);
+  });
+
+  it('rechaza mover una tarea a un padre inexistente', async () => {
+    const { service } = setup();
+    const root = await service.createTask({ title: 'Root' });
+    const sub = await service.createTask({ title: 'Sub', parentTaskId: root.id });
+
+    await expect(service.updateTask(sub.id, { parentTaskId: 'missing' })).rejects.toThrow(
+      ValidationError,
+    );
+  });
+
+  it('rechaza que una tarea sea su propio padre', async () => {
+    const { service } = setup();
+    const root = await service.createTask({ title: 'Root' });
+
+    await expect(service.updateTask(root.id, { parentTaskId: root.id })).rejects.toThrow(
+      ValidationError,
+    );
+  });
+
+  it('rechaza mover una tarea a un descendiente propio (ciclo)', async () => {
+    const { service } = setup();
+    const a = await service.createTask({ title: 'A' });
+    const b = await service.createTask({ title: 'B', parentTaskId: a.id });
+    const c = await service.createTask({ title: 'C', parentTaskId: b.id });
+
+    await expect(service.updateTask(a.id, { parentTaskId: c.id })).rejects.toThrow(
+      ValidationError,
+    );
+  });
 });
 
 describe('TaskService - eliminación', () => {

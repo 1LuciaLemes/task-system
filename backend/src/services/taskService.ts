@@ -79,9 +79,32 @@ export class TaskService {
       throw new ValidationError(`Prioridad inválida: ${input.priority}`);
     }
 
+    let positionOverride: number | undefined;
+    if (input.parentTaskId !== undefined) {
+      const newParentId = input.parentTaskId ?? null;
+      const parentChanged = newParentId !== current.parentTaskId;
+      if (newParentId !== null) {
+        if (newParentId === current.id) {
+          throw new ValidationError('Una tarea no puede ser su propio padre');
+        }
+        if (!(await this.repository.findById(newParentId))) {
+          throw new ValidationError(`Tarea padre no encontrada: ${newParentId}`);
+        }
+        const descendants = await this.getDescendantTasks(current.id);
+        if (descendants.some((task) => task.id === newParentId)) {
+          throw new ValidationError('El padre no puede ser un descendiente de la tarea');
+        }
+      }
+      if (parentChanged) {
+        const siblings = await this.repository.findByParentId(newParentId);
+        positionOverride = this.nextPosition(siblings);
+      }
+    }
+
     const cleanerInput: UpdateTaskInput = {
       ...input,
       ...(input.title !== undefined ? { title: input.title.trim() } : {}),
+      ...(positionOverride !== undefined ? { position: positionOverride } : {}),
     };
 
     return this.repository.update(id, cleanerInput);

@@ -105,15 +105,18 @@ describe('PATCH /tasks/:id', () => {
     expect(res.body.status).toBe(TaskStatus.COMPLETE);
   });
 
-  it('no permite modificar el padre desde la edición', async () => {
+  it('permite mover una tarea a otro padre mediante PATCH', async () => {
     const { app } = setup();
     const root = await request(app).post('/tasks').send({ title: 'Root' });
     const sub = await request(app).post('/tasks').send({ title: 'Sub' });
 
-    await request(app).patch(`/tasks/${root.body.id}`).send({ parentTaskId: sub.body.id });
+    await request(app)
+      .patch(`/tasks/${sub.body.id}`)
+      .send({ parentTaskId: root.body.id })
+      .expect(200);
 
-    const res = await request(app).get(`/tasks/${root.body.id}`);
-    expect(res.body.parentTaskId).toBeNull();
+    const res = await request(app).get(`/tasks/${sub.body.id}`);
+    expect(res.body.parentTaskId).toBe(root.body.id);
   });
 
   it('responde 404 para una tarea inexistente', async () => {

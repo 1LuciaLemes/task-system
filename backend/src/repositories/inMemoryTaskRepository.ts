@@ -38,6 +38,9 @@ export class InMemoryTaskRepository implements TaskRepository {
       ...(input.priority !== undefined ? { priority: input.priority } : {}),
       ...(input.estimate !== undefined ? { estimate: input.estimate } : {}),
       ...(input.position !== undefined ? { position: input.position } : {}),
+      ...(input.parentTaskId !== undefined
+        ? { parentTaskId: input.parentTaskId }
+        : {}),
       updatedAt: new Date(),
     };
     this.tasks.set(id, updated);

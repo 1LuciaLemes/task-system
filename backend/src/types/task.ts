@@ -16,6 +16,7 @@ export interface UpdateTaskInput {
   priority?: TaskPriority;
   estimate?: number | null;
   position?: number;
+  parentTaskId?: string | null;
 }
 
 export interface EffortSummary {

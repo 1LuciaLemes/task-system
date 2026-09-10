@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.js';
+import { DragProvider } from './state/DragState.js';
 import './index.css';
 
 const container = document.getElementById('root');
@@ -10,6 +11,8 @@ if (!container) {
 
 createRoot(container).render(
   <StrictMode>
-    <App />
+    <DragProvider>
+      <App />
+    </DragProvider>
   </StrictMode>,
 );

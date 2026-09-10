@@ -106,8 +106,8 @@ export class PgTaskRepository implements TaskRepository {
     }
 
     const values: unknown[] = columns.map((column) => column.value);
-    values.push(id);
     values.push(new Date());
+    values.push(id);
 
     const sets = columns.map((column, index) => `${column.column} = $${index + 1}`);
     sets.push(`updated_at = $${columns.length + 1}`);

@@ -21,7 +21,9 @@ services:
       retries: 10
 
   backend:
-    build: ./backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
     environment:
       PORT: 3000
       DATABASE_URL: postgres://${POSTGRES_USER:-task}:${POSTGRES_PASSWORD:-task}@postgres:5432/${POSTGRES_DB:-tasks}
@@ -32,7 +34,9 @@ services:
         condition: service_healthy
 
   frontend:
-    build: ./frontend
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
     ports:
       - "8080:80"
     depends_on:

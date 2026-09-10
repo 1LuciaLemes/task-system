@@ -7,7 +7,7 @@ equipo de desarrollo.
 
 La aplicación debe permitir crear, visualizar, actualizar y eliminar
 tareas, organizar tareas mediante subtareas con múltiples niveles de
-profundidad y visualizar estimaciones de esfuerzo.
+profundidad.
 
 ---
 
@@ -172,55 +172,18 @@ que las subtareas también serán eliminadas.
 
 ---
 
-# 9. Estimaciones
+# 9. Estimación
 
-Cada tarea puede tener una estimación individual de esfuerzo.
+Cada tarea puede tener una estimación individual, opcional y meramente
+informativa. La interfaz no muestra estimaciones en horas: el avance se
+representa mediante la barra de progreso de cada tarea y su subárbol.
 
-La estimación total de una jerarquía debe considerar la estimación
-de la tarea y la de todos sus descendientes.
-
-Ejemplo:
-
-Task = 10
-└── Subtask = 2
-
-Total = 12
-
-Otro ejemplo:
-
-Task = 10
-├── Frontend = 5
-├── Backend = 3
-└── Navbar = 2
-
-Total = 20
-
-El cálculo debe funcionar independientemente de la profundidad de la
-jerarquía.
+De los criterios del campo estimación se encarga la sección de campos
+básicos (número no negativo, `0` válido).
 
 ---
 
-# 10. Resumen de esfuerzo
-
-La aplicación debe mostrar:
-
-- Esfuerzo total estimado.
-- Esfuerzo pendiente.
-- Esfuerzo en progreso.
-- Esfuerzo completado.
-
-Los cálculos deben considerar toda la jerarquía de tareas.
-
-Ejemplo visual:
-
-Total: 37h
-Pending: 12h
-In Progress: 15h
-Complete: 10h
-
----
-
-# 11. Interfaz principal
+# 10. Interfaz principal
 
 La aplicación debe abrir directamente en el dashboard principal.
 
@@ -241,7 +204,6 @@ Cada tarjeta debe mostrar como mínimo:
 - Título.
 - Descripción resumida.
 - Prioridad.
-- Estimación.
 - Acceso al detalle.
 
 La descripción puede truncarse visualmente.
@@ -252,7 +214,7 @@ Ejemplo:
 
 ---
 
-# 12. Crear tareas
+# 11. Crear tareas
 
 Debe existir una acción visible para crear una tarea.
 
@@ -264,13 +226,12 @@ Campos:
 - Description — opcional.
 - Status — obligatorio.
 - Priority — obligatorio.
-- Estimate — opcional.
 
 Debe existir la posibilidad de confirmar o cancelar la creación.
 
 ---
 
-# 13. Detalle de tarea
+# 12. Detalle de tarea
 
 La vista de detalle debe mostrar toda la información de la tarea.
 
@@ -290,7 +251,7 @@ acciones.
 
 ---
 
-# 14. API REST
+# 13. API REST
 
 El backend debe proporcionar una API CRUD para tareas.
 
@@ -309,7 +270,7 @@ No es necesario crear endpoints separados para subtareas.
 
 ---
 
-# 15. Persistencia
+# 14. Persistencia
 
 La aplicación utilizará PostgreSQL como sistema de persistencia.
 
@@ -327,16 +288,15 @@ primeras etapas de desarrollo y posteriormente PostgreSQL.
 
 ---
 
-# 16. Tests
+# 15. Tests
 
 Se deben implementar tests unitarios para la lógica de negocio.
 
 Como mínimo se deben cubrir las reglas importantes relacionadas con:
 
 - Validación de tareas.
-- Estimaciones.
+- Estimaciones (validación del campo, no como cálculo de esfuerzo).
 - Jerarquía de tareas.
-- Cálculo recursivo de estimaciones.
 - Eliminación de descendientes.
 - Estados.
 - Prioridades.
@@ -346,7 +306,7 @@ principales de la aplicación cuando el tiempo lo permita.
 
 ---
 
-# 17. Docker Compose
+# 16. Docker Compose
 
 La aplicación y sus dependencias deben poder ejecutarse localmente
 mediante un único comando de Docker Compose.
@@ -361,7 +321,7 @@ docker compose up
 
 ---
 
-# 18. Restricciones
+# 17. Restricciones
 
 - No se requiere autenticación.
 - No se requieren roles o permisos.
@@ -373,7 +333,7 @@ docker compose up
 
 ---
 
-# 19. Nice to have
+# 18. Nice to have
 
 Las siguientes funcionalidades son deseables pero secundarias:
 
@@ -388,7 +348,7 @@ prioridad sobre estas funcionalidades.
 
 ---
 
-# 20. Criterios generales
+# 19. Criterios generales
 
 El proyecto debe:
 
@@ -406,7 +366,7 @@ Los commits se escribirán en español.
 
 ---
 
-# 21. Uso de IA
+# 20. Uso de IA
 
 Se permite y fomenta el uso de herramientas de IA.
 

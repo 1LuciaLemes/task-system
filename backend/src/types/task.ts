@@ -20,13 +20,6 @@ export interface UpdateTaskInput {
   parentTaskId?: string | null;
 }
 
-export interface EffortSummary {
-  total: number;
-  pending: number;
-  inProgress: number;
-  complete: number;
-}
-
 export class ValidationError extends Error {
   constructor(message: string) {
     super(message);

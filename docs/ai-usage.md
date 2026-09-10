@@ -499,3 +499,26 @@ Implementá la persistencia con PostgreSQL y el montaje con Docker Compose para 
 9. Verificá: `npm run build` y `npm test` en la raíz pasan (los tests siguen con el repo en memoria), y `docker compose config` valida el archivo.
 10. NO commitees nada hasta que yo lo pida.
 ```
+
+### 10. Eliminación del resumen de esfuerzo en horas
+
+```
+La aplicación no maneja estimaciones de esfuerzo en horas: el avance se
+representa con la barra de progreso de cada tarea y su subárbol.
+
+Quiero quitar el código muerto relacionado con horas del frontend:
+
+- Eliminar `frontend/src/components/EffortSummaryStrip.tsx`.
+- Eliminar `frontend/src/utils/effort.ts` y `frontend/src/utils/effort.test.ts`.
+- Eliminar la interfaz `EffortSummary` de `frontend/src/types/task.ts`.
+- Eliminar del backend los métodos no expuestos por la API
+  `getSubtreeEstimate` y `getEffortSummary` de
+  `backend/src/services/taskService.ts`, el tipo `EffortSummary` de
+  `backend/src/types/task.ts` y sus tests en `taskService.test.ts`.
+- Actualizar `docs/requirements.md` para que no exija resumen de
+  esfuerzo ni estimaciones visibles en la interfaz (mantener la
+  estimación como campo opcional e informativo).
+- Alinear `README.md` y `docs/architecture.md` con esta decisión.
+
+NO commitees nada hasta que yo lo pida.
+```

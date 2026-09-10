@@ -1,9 +1,8 @@
 # Task System
 
 Aplicación web para gestionar tareas de un pequeño equipo de desarrollo:
-crear, visualizar, actualizar y eliminar tareas, organizarlas mediante
-subtareas con múltiples niveles de profundidad y consultar estimaciones
-de esfuerzo.
+crear, visualizar, actualizar y eliminar tareas y organizarlas mediante
+subtareas con múltiples niveles de profundidad.
 
 ## Capturas
 
@@ -38,7 +37,7 @@ backend/
   src/
     controllers/   # manejo de peticiones HTTP y respuestas
     routes/        # definición de rutas de la API
-    services/      # lógica de negocio (jerarquía, orden, estimaciones)
+    services/      # lógica de negocio (jerarquía, orden)
     repositories/  # acceso a datos (interfaz + en memoria + PostgreSQL)
     models/        # entidades del dominio
     types/         # tipos TypeScript compartidos

@@ -49,13 +49,6 @@ export interface UpdateTaskInput {
   parentTaskId?: string | null;
 }
 
-export interface EffortSummary {
-  total: number;
-  pending: number;
-  inProgress: number;
-  complete: number;
-}
-
 export interface SubtreeStats {
   total: number;
   complete: number;

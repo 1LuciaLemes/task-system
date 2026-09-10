@@ -10,6 +10,7 @@ export default {
         },
         surface: "#f2f3f7",
         board: "#e9f1fe",
+        "sky-deep": "#0369a1",
         ink: {
           DEFAULT: "#1f2430",
           soft: "#5a6172",

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Sidebar } from './components/Sidebar.js';
 import { Dashboard } from './pages/Dashboard.js';
 import { useTasks } from './hooks/useTasks.js';
-import { CreateTaskInput, Task, TaskStatus, UpdateTaskInput } from './types/task.js';
+import { CreateTaskInput, Task, TaskKind, TaskStatus, UpdateTaskInput } from './types/task.js';
 import { PriorityFilter, SortBy, ViewFilter } from './utils/labels.js';
 
 export function App() {
@@ -14,7 +14,7 @@ export function App() {
   const [navOpen, setNavOpen] = useState(false);
 
   const handleCreateTask = async (input: CreateTaskInput): Promise<Task> =>
-    createTask(input);
+    createTask({ ...input, kind: TaskKind.MAIN });
 
   const handleUpdateTask = async (
     id: string,
@@ -32,7 +32,7 @@ export function App() {
     parentId: string,
     input: CreateTaskInput,
   ): Promise<Task> => {
-    return createTask({ ...input, parentTaskId: parentId });
+    return createTask({ ...input, parentTaskId: parentId, kind: TaskKind.SUBTASK });
   };
 
   const handleDeleteTask = async (id: string): Promise<void> => {
@@ -51,8 +51,13 @@ export function App() {
   const handleMoveTask = async (
     taskId: string,
     newParentId: string | null,
+    position?: number,
   ): Promise<void> => {
-    await updateTask(taskId, { parentTaskId: newParentId });
+    const input: UpdateTaskInput = { parentTaskId: newParentId };
+    if (position !== undefined) {
+      input.position = position;
+    }
+    await updateTask(taskId, input);
   };
 
   const completeSubtree = async (rootId: string): Promise<void> => {
@@ -94,23 +99,25 @@ export function App() {
   const sidebarProps = {
     view,
     onViewChange: setView,
-    sortBy,
-    onSortChange: setSortBy,
     tasks,
   };
 
   return (
-    <div className="relative flex h-screen overflow-hidden bg-board text-ink">
-      <Sidebar className="hidden lg:ml-16 lg:flex" {...sidebarProps} />
+    <div className="relative flex min-h-screen bg-board text-ink">
+      <Sidebar
+        className="hidden w-64 lg:sticky lg:top-6 lg:ml-16 lg:flex"
+        {...sidebarProps}
+      />
 
       {navOpen ? (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div
-            className="absolute inset-0 bg-ink/40"
+            className="absolute inset-0 bg-board"
             onClick={() => setNavOpen(false)}
           />
           <Sidebar
-            className="absolute inset-y-0 left-0 w-72 shadow-xl"
+            className="absolute inset-0 w-full overflow-y-auto bg-board p-6"
+            onClose={() => setNavOpen(false)}
             {...sidebarProps}
           />
         </div>
@@ -124,6 +131,7 @@ export function App() {
           view={view}
           sortBy={sortBy}
           priorityFilter={priorityFilter}
+          onSortChange={setSortBy}
           onPriorityChange={setPriorityFilter}
           onOpenNav={() => setNavOpen(true)}
           onRetry={() => void refresh()}

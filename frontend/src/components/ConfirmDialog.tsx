@@ -17,11 +17,11 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 px-4"
+      className="fixed inset-0 z-50 flex overflow-hidden bg-white lg:items-center lg:justify-center lg:bg-ink/40 lg:px-4"
       onClick={onCancel}
     >
       <div
-        className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl"
+        className="flex h-full w-full flex-col justify-center rounded-none bg-white p-5 lg:h-auto lg:max-w-sm lg:rounded-2xl lg:shadow-xl"
         onClick={(event) => event.stopPropagation()}
       >
         <h2 className="text-base font-semibold text-ink">{title}</h2>

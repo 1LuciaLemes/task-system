@@ -2,6 +2,7 @@ import { FormEvent, useState } from 'react';
 import {
   CreateTaskInput,
   Task,
+  TaskKind,
   TaskPriority,
   TaskStatus,
   UpdateTaskInput,
@@ -96,7 +97,7 @@ export function TaskForm({ task, submitLabel, onSubmit, onCancel }: TaskFormProp
         />
       </div>
 
-      <div className={`grid gap-3 ${task?.parentTaskId ? 'grid-cols-1' : 'grid-cols-2'}`}>
+      <div className={`grid gap-3 ${task?.kind !== TaskKind.MAIN ? 'grid-cols-1' : 'grid-cols-2'}`}>
         <div>
           <label className="mb-1 block text-xs font-medium text-ink-soft">
             Estado
@@ -111,7 +112,7 @@ export function TaskForm({ task, submitLabel, onSubmit, onCancel }: TaskFormProp
             }))}
           />
         </div>
-        {task?.parentTaskId ? null : (
+        {task?.kind !== TaskKind.MAIN ? null : (
         <div>
           <label className="mb-1 block text-xs font-medium text-ink-soft">
             Prioridad

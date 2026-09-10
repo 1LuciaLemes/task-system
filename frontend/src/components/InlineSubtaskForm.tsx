@@ -60,7 +60,7 @@ export function InlineSubtaskForm({ onSubmit, onCancel }: InlineSubtaskFormProps
             onClick={onCancel}
             className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-ink-soft hover:bg-slate-50"
           >
-            Ocultar
+            Cancelar
           </button>
         ) : null}
         <button

@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
-import { CreateTaskInput, Task, TaskStatus, UpdateTaskInput } from '../types/task.js';
+import { Fragment, useEffect, useRef, useState } from 'react';
+import { CreateTaskInput, Task, TaskKind, TaskStatus, UpdateTaskInput } from '../types/task.js';
 import { STATUS_LABELS } from '../utils/labels.js';
 import { isPartiallyComplete, SubtreeStats, TaskNode } from '../utils/tree.js';
 import { formatDate } from '../utils/format.js';
 import { pluralize } from '../utils/plural.js';
+import { DropIndicator } from './DropIndicator.js';
 import { PriorityBadge } from './PriorityBadge.js';
 import { ProgressBar } from './ProgressBar.js';
 import { StatusDot } from './StatusDot.js';
@@ -24,7 +25,11 @@ interface DetailModalProps {
   onCreateSubtask: (parentId: string, input: CreateTaskInput) => Promise<Task>;
   onCycleStatus: (task: Task) => void;
   onRequestDelete: (task: Task) => void;
-  onMoveTask: (taskId: string, newParentId: string | null) => void;
+  onMoveTask: (
+    taskId: string,
+    newParentId: string | null,
+    position?: number,
+  ) => void;
 }
 
 export function DetailModal({
@@ -86,13 +91,22 @@ export function DetailModal({
     ? TaskStatus.IN_PROGRESS
     : task.status;
 
+  const handleIndicatorDrop = (taskId: string, index: number) => {
+    let target = index;
+    const currentIndex = children.findIndex((child) => child.id === taskId);
+    if (currentIndex !== -1 && currentIndex < index) {
+      target = index - 1;
+    }
+    onMoveTask(taskId, task.id, target);
+  };
+
   return (
     <div
-      className="fixed inset-0 z-40 flex items-center justify-center bg-ink/40 px-4 py-6"
+      className="fixed inset-0 z-40 overflow-hidden bg-white lg:flex lg:items-center lg:justify-center lg:bg-ink/40 lg:px-4 lg:py-6"
       onClick={onClose}
     >
       <div
-        className="flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-xl"
+        className="flex h-full w-full flex-col overflow-hidden bg-white lg:h-auto lg:max-h-[92vh] lg:max-w-2xl lg:rounded-2xl lg:shadow-xl"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="shrink-0 border-b border-slate-100 px-5 py-4">
@@ -122,11 +136,11 @@ export function DetailModal({
                   >
                     {task.title}
                   </h2>
-                  {task.parentTaskId ? null : (
+                  {task.kind === TaskKind.MAIN ? (
                     <span className="shrink-0">
                       <PriorityBadge priority={task.priority} />
                     </span>
-                  )}
+                  ) : null}
                 </div>
                 <p className="mt-1 ml-6 text-sm text-ink-faint">
                   {STATUS_LABELS[displayStatus]} · {formatDate(task.createdAt)}
@@ -259,21 +273,39 @@ export function DetailModal({
             ) : null}
 
             {children.length > 0 ? (
-              <div className="mt-2 flex flex-col gap-2">
-                {children.map((child) => (
-                  <SubtaskRow
-                    key={child.id}
-                    task={child}
-                    children={child.children}
-                    depth={0}
-                    onOpen={onOpen}
-                    onEdit={onEdit}
-                    onCycleStatus={onCycleStatus}
-                    onCreateSubtask={onCreateSubtask}
-                    onRequestDelete={onRequestDelete}
-                    onMoveTask={onMoveTask}
-                  />
+              <div className="mt-2 flex flex-col">
+                {children.map((child, index) => (
+                  <Fragment key={child.id}>
+                    <DropIndicator
+                      index={index}
+                      onDrop={handleIndicatorDrop}
+                      block
+                    />
+                    <SubtaskRow
+                      task={child}
+                      children={child.children}
+                      depth={0}
+                      variant={child.kind === TaskKind.MAIN ? 'card' : 'row'}
+                      stats={
+                        child.kind === TaskKind.MAIN
+                          ? subtreeStats.get(child.id) ?? { total: 0, complete: 0 }
+                          : undefined
+                      }
+                      subtreeStats={subtreeStats}
+                      onOpen={onOpen}
+                      onEdit={onEdit}
+                      onCycleStatus={onCycleStatus}
+                      onCreateSubtask={onCreateSubtask}
+                      onRequestDelete={onRequestDelete}
+                      onMoveTask={onMoveTask}
+                    />
+                  </Fragment>
                 ))}
+                <DropIndicator
+                  index={children.length}
+                  onDrop={handleIndicatorDrop}
+                  block
+                />
               </div>
             ) : null}
           </div>

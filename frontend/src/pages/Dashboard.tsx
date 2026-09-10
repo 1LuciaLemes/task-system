@@ -1,4 +1,4 @@
-import { PointerEvent, UIEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { DragEvent, Fragment, PointerEvent, UIEvent, useEffect, useMemo, useRef, useState } from 'react';
 import {
   CreateTaskInput,
   Task,
@@ -13,7 +13,56 @@ import { DetailModal } from '../components/DetailModal.js';
 import { CreateTaskModal } from '../components/CreateTaskModal.js';
 import { computeSubtreeStats, buildTaskTree, findNodeById } from '../utils/tree.js';
 import { buildDeleteMessage } from '../utils/confirm.js';
-import { PRIORITY_DOT_CLASSES, PRIORITY_LABELS, PriorityFilter, SortBy, ViewFilter } from '../utils/labels.js';
+import { PRIORITY_DOT_CLASSES, PRIORITY_LABELS, PriorityFilter, SortBy, SORT_LABELS, ViewFilter } from '../utils/labels.js';
+import { DropIndicator } from '../components/DropIndicator.js';
+import { useDragState } from '../state/DragState.js';
+
+interface BoardLeadingDropZoneProps {
+  over: boolean;
+  onOverChange: (over: boolean) => void;
+  onDrop: (taskId: string) => void;
+}
+
+function BoardLeadingDropZone({
+  over,
+  onOverChange,
+  onDrop,
+}: BoardLeadingDropZoneProps) {
+  const handleDragOver = (event: DragEvent<HTMLDivElement>) => {
+    if (!event.dataTransfer.types.includes('text/plain')) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    event.dataTransfer.dropEffect = 'move';
+    if (!over) {
+      onOverChange(true);
+    }
+  };
+
+  const handleDragLeave = () => onOverChange(false);
+
+  const handleDrop = (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    onOverChange(false);
+    const taskId = event.dataTransfer.getData('text/plain');
+    if (taskId) {
+      onDrop(taskId);
+    }
+  };
+
+  return (
+    <div
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      className={`absolute inset-y-0 left-0 z-10 hidden lg:block ${
+        over ? 'w-[320px]' : 'w-4'
+      }`}
+    />
+  );
+}
 
 interface DashboardProps {
   tasks: Task[];
@@ -22,6 +71,7 @@ interface DashboardProps {
   view: ViewFilter;
   sortBy: SortBy;
   priorityFilter: PriorityFilter;
+  onSortChange: (sortBy: SortBy) => void;
   onPriorityChange: (priority: PriorityFilter) => void;
   onOpenNav: () => void;
   onRetry: () => void;
@@ -30,7 +80,11 @@ interface DashboardProps {
   onCreateSubtask: (parentId: string, input: CreateTaskInput) => Promise<Task>;
   onDeleteTask: (id: string) => Promise<void>;
   onCycleStatus: (task: Task) => Promise<void>;
-  onMoveTask: (taskId: string, newParentId: string | null) => Promise<void>;
+  onMoveTask: (
+    taskId: string,
+    newParentId: string | null,
+    position?: number,
+  ) => Promise<void>;
 }
 
 export function Dashboard({
@@ -40,6 +94,7 @@ export function Dashboard({
   view,
   sortBy,
   priorityFilter,
+  onSortChange,
   onPriorityChange,
   onOpenNav,
   onRetry,
@@ -159,6 +214,61 @@ export function Dashboard({
     setDragging(false);
   };
 
+  const [boardDragOver, setBoardDragOver] = useState(false);
+  const [leadingOver, setLeadingOver] = useState(false);
+  const { drag: activeDrag } = useDragState();
+
+  const handleBoardDragOver = (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+    const overDropTarget = (event.target as HTMLElement).closest(
+      '[data-drop-target]',
+    );
+    setBoardDragOver(!overDropTarget);
+  };
+
+  const handleBoardDragLeave = () => {
+    setBoardDragOver(false);
+  };
+
+  const handleBoardDrop = (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    setBoardDragOver(false);
+    const taskId = event.dataTransfer.getData('text/plain');
+    if (!taskId) {
+      return;
+    }
+    const task = tasks.find((item) => item.id === taskId);
+    if (task?.parentTaskId) {
+      void onMoveTask(taskId, null);
+    }
+  };
+
+  const handleRootIndicatorDrop = (taskId: string, index: number) => {
+    const allRootIds = tree.map((node) => node.id);
+    const draggedRootIndex = allRootIds.indexOf(taskId);
+    let target: number;
+    if (index >= visibleRoots.length) {
+      if (visibleRoots.length === 0) {
+        target = 0;
+      } else {
+        const lastId = visibleRoots[visibleRoots.length - 1].id;
+        const lastRootIndex = allRootIds.indexOf(lastId);
+        target =
+          lastRootIndex -
+          (draggedRootIndex !== -1 && draggedRootIndex < lastRootIndex ? 1 : 0) +
+          1;
+      }
+    } else {
+      const nextId = visibleRoots[index].id;
+      const nextIndex = allRootIds.indexOf(nextId);
+      target =
+        nextIndex -
+        (draggedRootIndex !== -1 && draggedRootIndex < nextIndex ? 1 : 0);
+    }
+    void onMoveTask(taskId, null, target);
+  };
+
   const handleOpenDetail = (task: Task, edit: boolean) => {
     if (draggingRef.current) {
       return;
@@ -242,6 +352,21 @@ export function Dashboard({
 
       <div className="px-4 pb-5 sm:px-8 lg:pl-4 lg:pr-16">
         <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-white px-4 py-3 shadow-sm">
+          {Object.entries(SORT_LABELS).map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => onSortChange(key as SortBy)}
+              className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                sortBy === key
+                  ? 'border-brand bg-brand-light text-brand-deep'
+                  : 'border-slate-200 bg-slate-50 text-ink-soft hover:bg-slate-100'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+          <span className="mx-1 h-5 w-px shrink-0 bg-slate-200" />
           {(['all', 'LOW', 'MEDIUM', 'HIGH'] as PriorityFilter[]).map((value) => (
             <button
               key={value}
@@ -284,10 +409,17 @@ export function Dashboard({
       ) : null}
 
       <div
-        className={`min-h-0 flex-1 overflow-y-auto px-4 pb-8 sm:px-8 lg:overflow-hidden lg:pl-4 lg:pr-16 ${
+        className={`relative min-h-0 flex-1 px-4 pb-8 sm:px-8 lg:pl-4 lg:pr-16 ${
           dragging ? 'cursor-grabbing' : 'cursor-grab'
         }`}
       >
+        {sortBy === 'position' && visibleRoots.length > 0 ? (
+          <BoardLeadingDropZone
+            over={leadingOver}
+            onOverChange={setLeadingOver}
+            onDrop={(taskId) => void onMoveTask(taskId, null, 0)}
+          />
+        ) : null}
         {loading && tasks.length === 0 ? (
           <p className="text-sm text-ink-faint">Cargando tareas...</p>
         ) : visibleRoots.length === 0 ? (
@@ -311,27 +443,80 @@ export function Dashboard({
               onPointerUp={stopDragging}
               onPointerCancel={stopDragging}
               onScroll={handleBoardScroll}
-              className={`board-scroll hidden h-full select-none touch-pan-y items-start gap-5 py-1 px-1 lg:flex lg:overflow-x-auto ${
+              onDragOver={handleBoardDragOver}
+              onDragLeave={handleBoardDragLeave}
+              onDrop={handleBoardDrop}
+              className={`board-scroll hidden h-full select-none touch-pan-y items-start py-1 pl-1 pr-1 lg:flex lg:overflow-x-auto ${
                 dragging ? 'pointer-events-none' : ''
+              } ${
+                boardDragOver
+                  ? 'rounded-2xl outline-2 outline-dashed outline-brand/50'
+                  : ''
               }`}
             >
-              {visibleRoots.map((root) => (
-                <TaskCard
-                  key={root.id}
-                  task={root}
-                  children={root.children}
-                  subtreeStats={subtreeStats}
-                  focused={focusedId === root.id}
-                  onFocusConsumed={() => setFocusedId(null)}
-                  onOpen={(task) => handleOpenDetail(task, false)}
-                  onRequestEdit={(task) => handleOpenDetail(task, true)}
-                  onEdit={(task) => handleOpenDetail(task, true)}
-                  onCycleStatus={handleCycleStatus}
-                  onCreateSubtask={onCreateSubtask}
-                  onRequestDelete={setPendingDelete}
-                  onMoveTask={onMoveTask}
-                />
+              {visibleRoots.map((root, index) => (
+                <Fragment key={root.id}>
+                  {index === 0 && sortBy === 'position' ? (
+                    <div
+                      className={`shrink-0 py-1 transition-[width] duration-150 ${
+                        leadingOver ? 'w-[300px]' : 'w-0'
+                      }`}
+                    >
+                      {leadingOver ? (
+                        <div
+                          className="w-full rounded-xl border-2 border-dashed border-brand bg-brand-light/50"
+                          style={{ height: 300 }}
+                        />
+                      ) : null}
+                    </div>
+                  ) : null}
+                  {index > 0 ? (
+                    sortBy === 'position' ? (
+                      <DropIndicator
+                        index={index}
+                        onDrop={handleRootIndicatorDrop}
+                        block
+                        blockHeight={300}
+                        blockClassName="shrink-0 self-stretch px-1 py-1 w-[300px]"
+                        className={`shrink-0 self-stretch py-1 ${
+                          activeDrag ? 'mx-1 w-1.5' : 'w-4'
+                        }`}
+                        lineClassName="h-full w-0.5"
+                      />
+                    ) : (
+                      <div className="w-4 shrink-0" />
+                    )
+                  ) : null}
+                  <TaskCard
+                    task={root}
+                    tasks={tasks}
+                    children={root.children}
+                    subtreeStats={subtreeStats}
+                    focused={focusedId === root.id}
+                    onFocusConsumed={() => setFocusedId(null)}
+                    onOpen={(task) => handleOpenDetail(task, false)}
+                    onRequestEdit={(task) => handleOpenDetail(task, true)}
+                    onEdit={(task) => handleOpenDetail(task, true)}
+                    onCycleStatus={handleCycleStatus}
+                    onCreateSubtask={onCreateSubtask}
+                    onRequestDelete={setPendingDelete}
+                    onMoveTask={onMoveTask}
+                  />
+                </Fragment>
               ))}
+              {sortBy === 'position' ? (
+                <DropIndicator
+                  index={visibleRoots.length}
+                  onDrop={handleRootIndicatorDrop}
+                  block
+                  blockHeight={300}
+                  blockClassName="shrink-0 self-stretch px-1 py-1 w-[300px]"
+                  className={`ml-1 w-1.5 shrink-0 self-stretch py-1 ${
+                    activeDrag ? '' : 'hidden'
+                  }`}
+                  lineClassName="h-full w-0.5"
+                />
+              ) : null}
             </div>
 
             {boardScroll.max > 0 ? (

@@ -34,7 +34,7 @@ export function StatusDot({ status, size = 'md' }: StatusDotProps) {
   }
   return (
     <span
-      className={`inline-flex shrink-0 items-center justify-center rounded-full bg-emerald-500 ${SIZE_CLASSES[size]}`}
+      className={`inline-flex shrink-0 items-center justify-center rounded-full bg-brand ${SIZE_CLASSES[size]}`}
       aria-label="Completada"
     >
       <svg

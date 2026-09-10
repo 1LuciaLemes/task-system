@@ -90,7 +90,7 @@ function SubtaskAdder({ initial, onConfirm, onCancel }: SubtaskAdderProps) {
           onClick={onCancel}
           className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-ink-soft hover:bg-slate-50"
         >
-          Ocultar
+          Cancelar
         </button>
         <button
           type="submit"
@@ -192,8 +192,8 @@ export function CreateTaskModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4">
-      <div className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl bg-white p-5 shadow-xl">
+    <div className="fixed inset-0 z-50 overflow-hidden bg-white lg:flex lg:items-center lg:justify-center lg:bg-ink/40 lg:p-4">
+      <div className="flex h-full w-full flex-col overflow-y-auto rounded-none bg-white p-5 lg:h-auto lg:max-h-[90vh] lg:max-w-xl lg:rounded-2xl lg:shadow-xl">
         <div className="mb-3 flex items-center justify-between">
           <p className="text-sm font-semibold text-ink">Nueva tarea</p>
           <button

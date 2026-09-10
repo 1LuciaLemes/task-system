@@ -1,17 +1,20 @@
-import { DragEvent, useEffect, useRef, useState } from 'react';
-import { CreateTaskInput, Task, TaskStatus } from '../types/task.js';
-import { isPartiallyComplete, SubtreeStats, TaskNode } from '../utils/tree.js';
+import { DragEvent, Fragment, useEffect, useRef, useState } from 'react';
+import { CreateTaskInput, Task, TaskKind, TaskStatus } from '../types/task.js';
+import { getAncestorIds, isPartiallyComplete, SubtreeStats, TaskNode } from '../utils/tree.js';
 import { STATUS_LABELS } from '../utils/labels.js';
 import { formatRelativeDate, truncateDescription } from '../utils/format.js';
 import { pluralize } from '../utils/plural.js';
+import { DropIndicator } from './DropIndicator.js';
 import { PriorityBadge } from './PriorityBadge.js';
 import { ProgressBar } from './ProgressBar.js';
 import { StatusDot } from './StatusDot.js';
 import { SubtaskRow } from './SubtaskRow.js';
 import { InlineSubtaskForm } from './InlineSubtaskForm.js';
+import { createTransparentDragImage, useDragState } from '../state/DragState.js';
 
 interface TaskCardProps {
   task: Task;
+  tasks: Task[];
   children: TaskNode[];
   subtreeStats: Map<string, SubtreeStats>;
   focused?: boolean;
@@ -22,11 +25,16 @@ interface TaskCardProps {
   onCycleStatus: (task: Task) => void;
   onCreateSubtask: (parentId: string, input: CreateTaskInput) => Promise<Task>;
   onRequestDelete: (task: Task) => void;
-  onMoveTask: (taskId: string, newParentId: string | null) => void;
+  onMoveTask: (
+    taskId: string,
+    newParentId: string | null,
+    position?: number,
+  ) => void;
 }
 
 export function TaskCard({
   task,
+  tasks,
   children,
   subtreeStats,
   focused = false,
@@ -44,6 +52,7 @@ export function TaskCard({
   const [dragOver, setDragOver] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
+  const { draggedId, beginDrag } = useDragState();
 
   useEffect(() => {
     if (focused && cardRef.current) {
@@ -75,30 +84,65 @@ export function TaskCard({
     ? TaskStatus.IN_PROGRESS
     : task.status;
 
+  const handleDragStart = (event: DragEvent<HTMLDivElement>) => {
+    event.stopPropagation();
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', task.id);
+    event.dataTransfer.setDragImage(createTransparentDragImage(), 0, 0);
+    const rect = event.currentTarget.getBoundingClientRect();
+    beginDrag(
+      {
+        taskId: task.id,
+        title: task.title,
+        kind: 'root',
+        width: rect.width,
+        height: rect.height,
+      },
+      event.clientX,
+      event.clientY,
+    );
+  };
+
   const handleDragOver = (event: DragEvent<HTMLDivElement>) => {
-    if (event.dataTransfer.types.includes('text/plain')) {
-      event.preventDefault();
-      event.dataTransfer.dropEffect = 'move';
-      if (!dragOver) {
-        setDragOver(true);
-      }
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+    if (!dragOver) {
+      setDragOver(true);
     }
   };
 
   const handleDrop = (event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
+    event.stopPropagation();
     setDragOver(false);
     const taskId = event.dataTransfer.getData('text/plain');
     if (taskId && taskId !== task.id) {
-      onMoveTask(taskId, task.id);
+      const isAncestor = getAncestorIds(tasks, task.id).includes(taskId);
+      if (!isAncestor) {
+        onMoveTask(taskId, task.id);
+      }
     }
+  };
+
+  const handleIndicatorDrop = (taskId: string, index: number) => {
+    let target = index;
+    const currentIndex = children.findIndex((child) => child.id === taskId);
+    if (currentIndex !== -1 && currentIndex < index) {
+      target = index - 1;
+    }
+    onMoveTask(taskId, task.id, target);
   };
 
   return (
     <div
       ref={cardRef}
-      className={`flex w-[334px] max-h-full shrink-0 flex-col rounded-2xl border border-slate-200 bg-white shadow-sm transition-shadow ${
+      draggable
+      onDragStart={handleDragStart}
+      data-drop-target
+      className={`flex w-[300px] max-h-full shrink-0 flex-col rounded-2xl border border-slate-300 bg-white shadow-sm transition-shadow ${
         dragOver ? 'ring-2 ring-brand ring-offset-1' : ''
+      } ${
+        draggedId === task.id ? 'opacity-40' : ''
       }`}
       onDragOver={handleDragOver}
       onDragLeave={() => setDragOver(false)}
@@ -127,7 +171,9 @@ export function TaskCard({
             {task.title}
           </h3>
           <span className="shrink-0">
-            <PriorityBadge priority={task.priority} />
+            {task.kind === TaskKind.MAIN ? (
+              <PriorityBadge priority={task.priority} />
+            ) : null}
           </span>
         </div>
 
@@ -140,7 +186,7 @@ export function TaskCard({
           {stats.total > 0 ? (
             <span
               className={`shrink-0 text-xs font-semibold tabular-nums ${
-                pct === 100 ? 'text-emerald-500' : 'text-ink'
+                pct === 100 ? 'text-brand' : 'text-ink'
               }`}
             >
               {pct}%
@@ -163,27 +209,44 @@ export function TaskCard({
 
       {directChildrenCount > 0 ? (
         <div className="min-h-0 flex-1 overflow-y-auto rounded-b-2xl border-t border-slate-200 bg-slate-50 pb-4 pl-2 pr-3 pt-2">
-          <div className="flex flex-col gap-2">
-            {children.map((child) => (
-              <SubtaskRow
-                key={child.id}
-                task={child}
-                children={child.children}
-                depth={0}
-                onOpen={onOpen}
-                onEdit={onEdit}
-                onCycleStatus={onCycleStatus}
-                onCreateSubtask={onCreateSubtask}
-                onRequestDelete={onRequestDelete}
-                onMoveTask={onMoveTask}
-              />
+          <div className="flex flex-col">
+            {children.map((child, index) => (
+              <Fragment key={child.id}>
+                <DropIndicator
+                  index={index}
+                  onDrop={handleIndicatorDrop}
+                  block
+                />
+                <SubtaskRow
+                  task={child}
+                  children={child.children}
+                  depth={0}
+                  variant={child.kind === TaskKind.MAIN ? 'card' : 'row'}
+                  stats={
+                    child.kind === TaskKind.MAIN
+                      ? subtreeStats.get(child.id) ?? { total: 0, complete: 0 }
+                      : undefined
+                  }
+                  onOpen={onOpen}
+                  onEdit={onEdit}
+                  onCycleStatus={onCycleStatus}
+                  onCreateSubtask={onCreateSubtask}
+                  onRequestDelete={onRequestDelete}
+                  onMoveTask={onMoveTask}
+                />
+              </Fragment>
             ))}
+            <DropIndicator
+              index={children.length}
+              onDrop={handleIndicatorDrop}
+              block
+            />
           </div>
         </div>
       ) : null}
 
       <div
-        className={`relative border-t border-slate-100 px-3 py-2 ${
+        className={`relative border-t border-slate-100 px-3 py-2.5 ${
           showAddForm ? '' : 'flex items-center justify-between gap-2'
         }`}
       >

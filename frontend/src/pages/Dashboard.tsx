@@ -320,7 +320,7 @@ export function Dashboard({
 
   return (
     <div className="flex min-w-0 flex-1 flex-col bg-board">
-      <header className="flex items-center justify-between gap-3 pb-6 pl-4 pr-4 pt-10 sm:px-8 lg:pl-4 lg:pr-16">
+      <header className="flex flex-col gap-3 pb-6 pl-4 pr-4 pt-10 sm:px-8 lg:flex-row lg:items-center lg:justify-between lg:pl-4 lg:pr-16">
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -344,46 +344,85 @@ export function Dashboard({
         <button
           type="button"
           onClick={() => setShowCreateModal(true)}
-          className="rounded-xl bg-ink px-5 py-2.5 text-base font-medium text-white shadow-sm hover:bg-black"
+          className="rounded-xl bg-ink px-5 py-2.5 text-base font-medium text-white shadow-sm hover:bg-black lg:shrink-0"
         >
           + Nueva tarea
         </button>
       </header>
 
       <div className="px-4 pb-5 sm:px-8 lg:pl-4 lg:pr-16">
-        <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-white px-4 py-3 shadow-sm">
-          {Object.entries(SORT_LABELS).map(([key, label]) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => onSortChange(key as SortBy)}
-              className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
-                sortBy === key
-                  ? 'border-brand bg-brand-light text-brand-deep'
-                  : 'border-slate-200 bg-slate-50 text-ink-soft hover:bg-slate-100'
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-          <span className="mx-1 h-5 w-px shrink-0 bg-slate-200" />
-          {(['all', 'LOW', 'MEDIUM', 'HIGH'] as PriorityFilter[]).map((value) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => onPriorityChange(value)}
-              className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
-                priorityFilter === value
-                  ? 'border-brand bg-brand-light text-brand-deep'
-                  : 'border-slate-200 bg-slate-50 text-ink-soft hover:bg-slate-100'
-              }`}
-            >
-              {value === 'all' ? null : (
-                <span className={`h-2 w-2 rounded-full ${PRIORITY_DOT_CLASSES[value]}`} />
-              )}
-              {value === 'all' ? 'Todas' : PRIORITY_LABELS[value]}
-            </button>
-          ))}
+        <div className="rounded-2xl bg-white px-4 py-3 shadow-sm">
+          <div className="lg:hidden">
+            <div className="flex flex-wrap items-center gap-2">
+              {Object.entries(SORT_LABELS).map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => onSortChange(key as SortBy)}
+                  className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                    sortBy === key
+                      ? 'border-brand bg-brand-light text-brand-deep'
+                      : 'border-slate-200 bg-slate-50 text-ink-soft hover:bg-slate-100'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-2">
+              {(['all', 'LOW', 'MEDIUM', 'HIGH'] as PriorityFilter[]).map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => onPriorityChange(value)}
+                  className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                    priorityFilter === value
+                      ? 'border-brand bg-brand-light text-brand-deep'
+                      : 'border-slate-200 bg-slate-50 text-ink-soft hover:bg-slate-100'
+                  }`}
+                >
+                  {value === 'all' ? null : (
+                    <span className={`h-2 w-2 rounded-full ${PRIORITY_DOT_CLASSES[value]}`} />
+                  )}
+                  {value === 'all' ? 'Todas' : PRIORITY_LABELS[value]}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="hidden flex-wrap items-center gap-2 lg:flex">
+            {Object.entries(SORT_LABELS).map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => onSortChange(key as SortBy)}
+                className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                  sortBy === key
+                    ? 'border-brand bg-brand-light text-brand-deep'
+                    : 'border-slate-200 bg-slate-50 text-ink-soft hover:bg-slate-100'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+            <span className="mx-1 h-5 w-px shrink-0 bg-slate-200" />
+            {(['all', 'LOW', 'MEDIUM', 'HIGH'] as PriorityFilter[]).map((value) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => onPriorityChange(value)}
+                className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                  priorityFilter === value
+                    ? 'border-brand bg-brand-light text-brand-deep'
+                    : 'border-slate-200 bg-slate-50 text-ink-soft hover:bg-slate-100'
+                }`}
+              >
+                {value === 'all' ? null : (
+                  <span className={`h-2 w-2 rounded-full ${PRIORITY_DOT_CLASSES[value]}`} />
+                )}
+                {value === 'all' ? 'Todas' : PRIORITY_LABELS[value]}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 

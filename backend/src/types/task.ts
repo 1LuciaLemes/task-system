@@ -1,6 +1,7 @@
-import { TaskPriority, TaskStatus } from '../models/task.js';
+import { TaskKind, TaskPriority, TaskStatus } from '../models/task.js';
 
 export interface CreateTaskInput {
+  kind?: TaskKind;
   title: string;
   description?: string | null;
   status?: TaskStatus;

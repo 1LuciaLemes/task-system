@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { Task, TaskPriority, TaskStatus } from '../models/task.js';
+import { Task, TaskKind, TaskPriority, TaskStatus } from '../models/task.js';
 import type { TaskRepository } from '../repositories/taskRepository.js';
 import { CreateTaskInput, EffortSummary, UpdateTaskInput, ValidationError } from '../types/task.js';
 
@@ -15,6 +15,9 @@ export class TaskService {
     if (input.priority !== undefined && !this.isValidEnum(TaskPriority, input.priority)) {
       throw new ValidationError(`Prioridad inválida: ${input.priority}`);
     }
+    if (input.kind !== undefined && !this.isValidEnum(TaskKind, input.kind)) {
+      throw new ValidationError(`Tipo inválido: ${input.kind}`);
+    }
 
     const parentId = input.parentTaskId ?? null;
     if (parentId !== null && !(await this.repository.findById(parentId))) {
@@ -26,6 +29,7 @@ export class TaskService {
 
     const task: Task = {
       id: randomUUID(),
+      kind: input.kind ?? (parentId === null ? TaskKind.MAIN : TaskKind.SUBTASK),
       title: input.title.trim(),
       description: input.description ?? null,
       status: input.status ?? TaskStatus.PENDING,
@@ -79,32 +83,81 @@ export class TaskService {
       throw new ValidationError(`Prioridad inválida: ${input.priority}`);
     }
 
-    let positionOverride: number | undefined;
+    let newParentId = current.parentTaskId;
+    let parentChanged = false;
     if (input.parentTaskId !== undefined) {
-      const newParentId = input.parentTaskId ?? null;
-      const parentChanged = newParentId !== current.parentTaskId;
-      if (newParentId !== null) {
-        if (newParentId === current.id) {
-          throw new ValidationError('Una tarea no puede ser su propio padre');
-        }
-        if (!(await this.repository.findById(newParentId))) {
-          throw new ValidationError(`Tarea padre no encontrada: ${newParentId}`);
-        }
-        const descendants = await this.getDescendantTasks(current.id);
-        if (descendants.some((task) => task.id === newParentId)) {
-          throw new ValidationError('El padre no puede ser un descendiente de la tarea');
+      newParentId = input.parentTaskId ?? null;
+      parentChanged = newParentId !== current.parentTaskId;
+      if (newParentId === current.id) {
+        throw new ValidationError('Una tarea no puede ser su propio padre');
+      }
+      if (newParentId !== null && !(await this.repository.findById(newParentId))) {
+        throw new ValidationError(`Tarea padre no encontrada: ${newParentId}`);
+      }
+      const descendants = await this.getDescendantTasks(current.id);
+      if (descendants.some((task) => task.id === newParentId)) {
+        throw new ValidationError('El padre no puede ser un descendiente de la tarea');
+      }
+    }
+
+    if (parentChanged || input.position !== undefined) {
+      if (
+        input.position !== undefined &&
+        (typeof input.position !== 'number' ||
+          Number.isNaN(input.position) ||
+          input.position < 0)
+      ) {
+        throw new ValidationError('La posición debe ser un número no negativo');
+      }
+      const siblings = (await this.repository.findByParentId(newParentId))
+        .filter((task) => task.id !== id)
+        .sort(
+          (a, b) =>
+            a.position - b.position ||
+            a.createdAt.getTime() - b.createdAt.getTime(),
+        );
+      const targetIndex =
+        input.position !== undefined
+          ? Math.max(0, Math.min(Math.floor(input.position), siblings.length))
+          : siblings.length;
+      const ordered = [
+        ...siblings.slice(0, targetIndex),
+        current,
+        ...siblings.slice(targetIndex),
+      ];
+      for (let i = 0; i < ordered.length; i += 1) {
+        const task = ordered[i];
+        if (task.id === id) {
+          const update: UpdateTaskInput = { position: i };
+          if (input.title !== undefined) {
+            update.title = input.title.trim();
+          }
+          if (input.description !== undefined) {
+            update.description = input.description;
+          }
+          if (input.status !== undefined) {
+            update.status = input.status;
+          }
+          if (input.priority !== undefined) {
+            update.priority = input.priority;
+          }
+          if (input.estimate !== undefined) {
+            update.estimate = input.estimate;
+          }
+          if (parentChanged) {
+            update.parentTaskId = newParentId;
+          }
+          await this.repository.update(id, update);
+        } else {
+          await this.repository.update(task.id, { position: i });
         }
       }
-      if (parentChanged) {
-        const siblings = await this.repository.findByParentId(newParentId);
-        positionOverride = this.nextPosition(siblings);
-      }
+      return this.repository.findById(id);
     }
 
     const cleanerInput: UpdateTaskInput = {
       ...input,
       ...(input.title !== undefined ? { title: input.title.trim() } : {}),
-      ...(positionOverride !== undefined ? { position: positionOverride } : {}),
     };
 
     return this.repository.update(id, cleanerInput);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { TaskPriority, TaskStatus } from '../models/task.js';
+import { TaskKind, TaskPriority, TaskStatus } from '../models/task.js';
 import { InMemoryTaskRepository } from '../repositories/inMemoryTaskRepository.js';
 import { TaskService } from './taskService.js';
 import { ValidationError } from '../types/task.js';
@@ -16,6 +16,7 @@ describe('TaskService - creación', () => {
     const task = await service.createTask({ title: 'Task A' });
 
     expect(task.id).toBeDefined();
+    expect(task.kind).toBe(TaskKind.MAIN);
     expect(task.title).toBe('Task A');
     expect(task.description).toBeNull();
     expect(task.status).toBe(TaskStatus.PENDING);
@@ -62,6 +63,22 @@ describe('TaskService - creación', () => {
     await expect(
       service.createTask({ title: 'Task', priority: 'INVALID' as TaskPriority }),
     ).rejects.toThrow(ValidationError);
+  });
+
+  it('rechaza un tipo de tarea inválido', async () => {
+    const { service } = setup();
+    await expect(
+      service.createTask({ title: 'Task', kind: 'INVALID' as TaskKind }),
+    ).rejects.toThrow(ValidationError);
+  });
+
+  it('marca como MAIN las tareas raíz y como SUBTASK las anidadas', async () => {
+    const { service } = setup();
+    const root = await service.createTask({ title: 'Root' });
+    const sub = await service.createTask({ title: 'Sub', parentTaskId: root.id });
+
+    expect(root.kind).toBe(TaskKind.MAIN);
+    expect(sub.kind).toBe(TaskKind.SUBTASK);
   });
 
   it('rechaza una subtarea con padre inexistente', async () => {
@@ -199,6 +216,44 @@ describe('TaskService - actualización', () => {
     await expect(service.updateTask(a.id, { parentTaskId: c.id })).rejects.toThrow(
       ValidationError,
     );
+  });
+
+  it('reordena hermanas mediante position', async () => {
+    const { service } = setup();
+    const a = await service.createTask({ title: 'A' });
+    const b = await service.createTask({ title: 'B' });
+    const c = await service.createTask({ title: 'C' });
+
+    await service.updateTask(c.id, { position: 0 });
+
+    const roots = await service.getRootTasks();
+    expect(roots.map((task) => task.title)).toEqual(['C', 'A', 'B']);
+  });
+
+  it('mueve a otro padre y reordena con position', async () => {
+    const { service } = setup();
+    const a = await service.createTask({ title: 'A' });
+    const b = await service.createTask({ title: 'B' });
+    const c = await service.createTask({ title: 'C' });
+    await service.createTask({ title: 'Sibling', parentTaskId: b.id });
+
+    await service.updateTask(c.id, { parentTaskId: b.id, position: 1 });
+
+    const siblings = await service.getSubtasks(b.id);
+    expect(siblings.map((task) => task.title)).toEqual(['Sibling', 'C']);
+  });
+
+  it('rechaza una posición negativa o no numérica', async () => {
+    const { service } = setup();
+    const a = await service.createTask({ title: 'A' });
+    const b = await service.createTask({ title: 'B' });
+
+    await expect(service.updateTask(b.id, { position: -1 } as never)).rejects.toThrow(
+      ValidationError,
+    );
+    await expect(
+      service.updateTask(a.id, { position: Number.NaN }),
+    ).rejects.toThrow(ValidationError);
   });
 });
 

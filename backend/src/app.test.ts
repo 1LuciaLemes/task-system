@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import request from 'supertest';
 import { createApp } from './app.js';
 import { InMemoryTaskRepository } from './repositories/inMemoryTaskRepository.js';
-import { TaskPriority, TaskStatus } from './models/task.js';
+import { TaskKind, TaskPriority, TaskStatus } from './models/task.js';
 
 function setup() {
   const repository = new InMemoryTaskRepository();
@@ -17,6 +17,7 @@ describe('POST /tasks', () => {
 
     expect(res.status).toBe(201);
     expect(res.body.id).toBeDefined();
+    expect(res.body.kind).toBe(TaskKind.MAIN);
     expect(res.body.title).toBe('Task A');
     expect(res.body.description).toBeNull();
     expect(res.body.status).toBe(TaskStatus.PENDING);
@@ -51,6 +52,7 @@ describe('POST /tasks', () => {
       .send({ title: 'Sub', parentTaskId: root.body.id });
 
     expect(res.status).toBe(201);
+    expect(res.body.kind).toBe(TaskKind.SUBTASK);
     expect(res.body.parentTaskId).toBe(root.body.id);
     expect(res.body.position).toBe(0);
   });

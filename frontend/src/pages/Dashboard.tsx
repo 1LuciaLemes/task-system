@@ -64,6 +64,8 @@ function BoardLeadingDropZone({
   );
 }
 
+const BOARD_PAGE_SIZE = 7;
+
 interface DashboardProps {
   tasks: Task[];
   loading: boolean;
@@ -110,6 +112,7 @@ export function Dashboard({
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<Task | null>(null);
   const [focusedId, setFocusedId] = useState<string | null>(null);
+  const [boardLimit, setBoardLimit] = useState(BOARD_PAGE_SIZE);
 
   const tree = useMemo(() => buildTaskTree(tasks), [tasks]);
   const subtreeStats = useMemo(() => computeSubtreeStats(tasks), [tasks]);
@@ -132,6 +135,9 @@ export function Dashboard({
     }
     return roots;
   }, [tree, view, priorityFilter, sortBy]);
+
+  const renderedRoots = visibleRoots.slice(0, boardLimit);
+  const remaining = visibleRoots.length - renderedRoots.length;
 
   const selectedTask = selectedTaskId
     ? tasks.find((task) => task.id === selectedTaskId) ?? null
@@ -173,7 +179,15 @@ export function Dashboard({
     if (max > 0) {
       showBar();
     }
-  }, [visibleRoots]);
+  }, [visibleRoots, boardLimit]);
+
+  useEffect(() => {
+    const el = boardRef.current;
+    if (!el) {
+      return;
+    }
+    el.scrollLeft = el.scrollWidth;
+  }, [boardLimit]);
 
   const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) {
@@ -448,7 +462,7 @@ export function Dashboard({
       ) : null}
 
       <div
-        className={`relative min-h-0 flex-1 px-4 pb-8 sm:px-8 lg:pl-4 lg:pr-16 ${
+        className={`relative flex min-h-0 flex-1 flex-col px-4 pb-8 sm:px-8 lg:pl-4 lg:pr-16 ${
           dragging ? 'cursor-grabbing' : 'cursor-grab'
         }`}
       >
@@ -466,7 +480,7 @@ export function Dashboard({
         ) : (
           <>
             <div className="flex flex-col gap-3 pb-4 lg:hidden">
-              {visibleRoots.map((root) => (
+              {renderedRoots.map((root) => (
                 <MobileTaskCard
                   key={root.id}
                   task={root}
@@ -485,7 +499,7 @@ export function Dashboard({
               onDragOver={handleBoardDragOver}
               onDragLeave={handleBoardDragLeave}
               onDrop={handleBoardDrop}
-              className={`board-scroll hidden h-full select-none touch-pan-y items-start py-1 pl-1 pr-1 lg:flex lg:overflow-x-auto ${
+              className={`board-scroll hidden min-h-0 flex-1 select-none touch-pan-y items-start py-1 pl-1 pr-1 lg:flex lg:overflow-x-auto ${
                 dragging ? 'pointer-events-none' : ''
               } ${
                 boardDragOver
@@ -493,7 +507,7 @@ export function Dashboard({
                   : ''
               }`}
             >
-              {visibleRoots.map((root, index) => (
+              {renderedRoots.map((root, index) => (
                 <Fragment key={root.id}>
                   {index === 0 && sortBy === 'position' ? (
                     <div
@@ -556,7 +570,32 @@ export function Dashboard({
                   lineClassName="h-full w-0.5"
                 />
               ) : null}
+              {remaining > 0 ? (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setBoardLimit((value) => value + BOARD_PAGE_SIZE)
+                  }
+                  className="ml-2 hidden h-11 shrink-0 items-center self-start rounded-xl border border-slate-300 bg-white px-4 text-sm font-medium text-brand shadow-sm hover:bg-brand-light lg:flex"
+                >
+                  Cargar más
+                </button>
+              ) : null}
             </div>
+
+            {remaining > 0 ? (
+              <div className="pt-3 lg:hidden">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setBoardLimit((value) => value + BOARD_PAGE_SIZE)
+                  }
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-brand hover:bg-brand-light"
+                >
+                  Cargar más ({remaining} restantes)
+                </button>
+              </div>
+            ) : null}
 
             {boardScroll.max > 0 ? (
               <div

@@ -311,7 +311,7 @@ export function Dashboard({
               onPointerUp={stopDragging}
               onPointerCancel={stopDragging}
               onScroll={handleBoardScroll}
-              className={`board-scroll hidden h-full select-none touch-pan-y items-start gap-5 lg:flex lg:overflow-x-auto ${
+              className={`board-scroll hidden h-full select-none touch-pan-y items-start gap-5 py-1 px-1 lg:flex lg:overflow-x-auto ${
                 dragging ? 'pointer-events-none' : ''
               }`}
             >

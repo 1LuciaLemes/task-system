@@ -1,6 +1,7 @@
 import { Task } from '../types/task.js';
 import { computeSubtreeStats, getRootTasks } from '../utils/tree.js';
 import { VIEW_LABELS, ViewFilter } from '../utils/labels.js';
+import { getEffortSummary, getWeightedProgress } from '../utils/effort.js';
 
 interface SidebarProps {
   view: ViewFilter;
@@ -18,15 +19,22 @@ export function Sidebar({
   className = '',
 }: SidebarProps) {
   const stats = computeSubtreeStats(tasks);
+  const roots = getRootTasks(tasks);
   let total = 0;
   let complete = 0;
-  for (const value of stats.values()) {
-    total += value.total;
-    complete += value.complete;
+  for (const root of roots) {
+    const rootStats = stats.get(root.id);
+    if (rootStats) {
+      total += rootStats.total;
+      complete += rootStats.complete;
+    }
   }
-  const roots = getRootTasks(tasks);
   const pendingRoots = roots.filter((task) => task.status !== 'COMPLETE').length;
   const completedRoots = roots.filter((task) => task.status === 'COMPLETE').length;
+  const effortSummary = getEffortSummary(tasks);
+  const weighted = getWeightedProgress(tasks);
+  const progressPercent =
+    weighted.total > 0 ? (weighted.complete / weighted.total) * 100 : 0;
   const views: { key: ViewFilter; count: number }[] = [
     { key: 'board', count: roots.length },
     { key: 'pending', count: pendingRoots },
@@ -91,11 +99,15 @@ export function Sidebar({
         <div className="h-2 overflow-hidden rounded-full bg-slate-300">
           <div
             className="h-full rounded-full bg-brand"
-            style={{ width: `${total > 0 ? (complete / total) * 100 : 0}%` }}
+            style={{ width: `${progressPercent}%` }}
           />
         </div>
         <p className="mt-2 text-[11px] text-ink/55">
           {complete} de {total} tareas completadas
+        </p>
+        <p className="mt-0.5 text-[11px] text-ink/55">
+          {Math.round(effortSummary.complete * 100) / 100} de{' '}
+          {Math.round(effortSummary.total * 100) / 100} h completadas
         </p>
       </div>
     </aside>

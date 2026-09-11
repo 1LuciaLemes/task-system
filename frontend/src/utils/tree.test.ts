@@ -100,6 +100,45 @@ describe('computeSubtreeStats', () => {
     expect(getSubtreeStats(tasks, 'c', stats)).toEqual({ total: 2, complete: 1 });
     expect(getSubtreeStats(tasks, 'b', stats)).toEqual({ total: 1, complete: 1 });
   });
+
+  it('anidar una tarea no cambia el total del tablero (solo reparenta)', () => {
+    const before = [
+      makeTask({ id: 'a', status: TaskStatus.PENDING }),
+      makeTask({ id: 'b', status: TaskStatus.PENDING }),
+      makeTask({ id: 'c', status: TaskStatus.COMPLETE }),
+    ];
+    const after = [
+      makeTask({ id: 'a', status: TaskStatus.PENDING }),
+      makeTask({ id: 'b', status: TaskStatus.PENDING, parentTaskId: 'a', position: 0 }),
+      makeTask({ id: 'c', status: TaskStatus.COMPLETE }),
+    ];
+    const sumRoots = (tasks: Task[]) => {
+      const stats = computeSubtreeStats(tasks);
+      let total = 0;
+      let complete = 0;
+      for (const root of getRootTasks(tasks)) {
+        const rootStats = stats.get(root.id);
+        if (rootStats) {
+          total += rootStats.total;
+          complete += rootStats.complete;
+        }
+      }
+      return { total, complete };
+    };
+    expect(sumRoots(after)).toEqual(sumRoots(before));
+    expect(sumRoots(after)).toEqual({ total: 3, complete: 1 });
+  });
+
+  it('anidar una tarea completa bajo una padre pendiente mantiene el conteo', () => {
+    const tasks = [
+      makeTask({ id: 'a', status: TaskStatus.PENDING }),
+      makeTask({ id: 'b', status: TaskStatus.COMPLETE, parentTaskId: 'a' }),
+    ];
+    const stats = computeSubtreeStats(tasks);
+    const root = getRootTasks(tasks)[0];
+    const rootStats = stats.get(root.id);
+    expect(rootStats).toEqual({ total: 2, complete: 1 });
+  });
 });
 
 describe('getDescendantIds', () => {

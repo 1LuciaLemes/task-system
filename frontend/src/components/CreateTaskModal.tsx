@@ -1,13 +1,14 @@
 import { FormEvent, useEffect, useRef, useState } from 'react';
 import { CreateTaskInput, Task, TaskPriority, TaskStatus } from '../types/task.js';
 import { PRIORITY_DOT_CLASSES, PRIORITY_LABELS, STATUS_LABELS } from '../utils/labels.js';
-import { validateTitleInput } from '../utils/validate.js';
+import { validateEstimateInput, validateEstimateLive, validateTitleInput } from '../utils/validate.js';
 import { Select } from './Select.js';
 
 interface PendingSubtask {
   key: number;
   title: string;
   description: string | null;
+  estimate: number | null;
 }
 
 interface CreateTaskModalProps {
@@ -20,7 +21,7 @@ const inputClasses =
   'w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-ink outline-none focus:border-brand';
 
 interface SubtaskAdderProps {
-  initial?: { title: string; description: string | null } | null;
+  initial?: { title: string; description: string | null; estimate: number | null } | null;
   onConfirm: (input: CreateTaskInput) => void;
   onCancel: () => void;
 }
@@ -28,19 +29,38 @@ interface SubtaskAdderProps {
 function SubtaskAdder({ initial, onConfirm, onCancel }: SubtaskAdderProps) {
   const [title, setTitle] = useState(initial?.title ?? '');
   const [description, setDescription] = useState(initial?.description ?? '');
+  const [estimateValue, setEstimateValue] = useState(
+    initial?.estimate === null || initial?.estimate === undefined ? '' : String(initial.estimate),
+  );
   const [titleError, setTitleError] = useState<string | null>(null);
+  const [estimateError, setEstimateError] = useState<string | null>(null);
+  const [titleTouched, setTitleTouched] = useState(false);
 
   useEffect(() => {
     setTitle(initial?.title ?? '');
     setDescription(initial?.description ?? '');
+    setEstimateValue(
+      initial?.estimate === null || initial?.estimate === undefined
+        ? ''
+        : String(initial.estimate),
+    );
     setTitleError(null);
+    setEstimateError(null);
+    setTitleTouched(false);
   }, [initial]);
 
   const handleTitleChange = (value: string) => {
     setTitle(value);
-    if (titleError && value.trim()) {
+    if (titleTouched) {
+      setTitleError(validateTitleInput(value));
+    } else if (titleError && value.trim()) {
       setTitleError(null);
     }
+  };
+
+  const handleTitleBlur = () => {
+    setTitleTouched(true);
+    setTitleError(validateTitleInput(title));
   };
 
   const handleSubmit = (event: FormEvent) => {
@@ -51,12 +71,22 @@ function SubtaskAdder({ initial, onConfirm, onCancel }: SubtaskAdderProps) {
       return;
     }
 
+    const trimmedEstimate = estimateValue.trim();
+    const estimateValidation = validateEstimateInput(trimmedEstimate);
+    setEstimateError(estimateValidation);
+    if (estimateValidation) {
+      return;
+    }
+
     onConfirm({
       title: title.trim(),
       description: description.trim() || null,
+      estimate:
+        trimmedEstimate === '' ? null : Number(trimmedEstimate.replace(',', '.')),
     });
     setTitle('');
     setDescription('');
+    setEstimateValue('');
   };
 
   return (
@@ -66,6 +96,7 @@ function SubtaskAdder({ initial, onConfirm, onCancel }: SubtaskAdderProps) {
           type="text"
           value={title}
           onChange={(event) => handleTitleChange(event.target.value)}
+          onBlur={handleTitleBlur}
           className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand"
           placeholder="Título de la subtarea"
         />
@@ -82,6 +113,23 @@ function SubtaskAdder({ initial, onConfirm, onCancel }: SubtaskAdderProps) {
           rows={2}
           placeholder="Descripción de la subtarea"
         />
+      </div>
+
+      <div>
+        <input
+          type="text"
+          inputMode="decimal"
+          value={estimateValue}
+          onChange={(event) => {
+            setEstimateValue(event.target.value);
+            setEstimateError(validateEstimateLive(event.target.value));
+          }}
+          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand"
+          placeholder="Estimación (horas) · opcional"
+        />
+        {estimateError ? (
+          <p className="mt-1 text-xs text-red-600">{estimateError}</p>
+        ) : null}
       </div>
 
       <div className="flex items-center gap-1.5">
@@ -112,7 +160,10 @@ export function CreateTaskModal({
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState<TaskStatus>(TaskStatus.PENDING);
   const [priority, setPriority] = useState<TaskPriority>(TaskPriority.MEDIUM);
+  const [estimateValue, setEstimateValue] = useState('');
   const [titleError, setTitleError] = useState<string | null>(null);
+  const [estimateError, setEstimateError] = useState<string | null>(null);
+  const [titleTouched, setTitleTouched] = useState(false);
   const [subtasks, setSubtasks] = useState<PendingSubtask[]>([]);
   const [addingSubtask, setAddingSubtask] = useState(false);
   const [editingKey, setEditingKey] = useState<number | null>(null);
@@ -123,9 +174,16 @@ export function CreateTaskModal({
 
   const handleTitleChange = (value: string) => {
     setTitle(value);
-    if (titleError && value.trim()) {
+    if (titleTouched) {
+      setTitleError(validateTitleInput(value));
+    } else if (titleError && value.trim()) {
       setTitleError(null);
     }
+  };
+
+  const handleTitleBlur = () => {
+    setTitleTouched(true);
+    setTitleError(validateTitleInput(title));
   };
 
   const handleAddSubtask = (input: CreateTaskInput) => {
@@ -135,6 +193,7 @@ export function CreateTaskModal({
         key: nextKey.current++,
         title: input.title,
         description: input.description ?? null,
+        estimate: input.estimate ?? null,
       },
     ]);
     setAddingSubtask(false);
@@ -145,7 +204,12 @@ export function CreateTaskModal({
     setSubtasks((list) =>
       list.map((subtask) =>
         subtask.key === key
-          ? { ...subtask, title: input.title, description: input.description ?? null }
+          ? {
+              ...subtask,
+              title: input.title,
+              description: input.description ?? null,
+              estimate: input.estimate ?? null,
+            }
           : subtask,
       ),
     );
@@ -172,16 +236,29 @@ export function CreateTaskModal({
     setSubmitting(true);
     setError(null);
     try {
+      let estimate: number | null = null;
+      const trimmedEstimate = estimateValue.trim();
+      const estimateValidation = validateEstimateInput(trimmedEstimate);
+      if (estimateValidation) {
+        setEstimateError(estimateValidation);
+        setSubmitting(false);
+        return;
+      }
+      if (trimmedEstimate !== '') {
+        estimate = Number(trimmedEstimate.replace(',', '.'));
+      }
       const root = await onCreateTask({
         title: trimmedTitle,
         description: description.trim() || null,
         status,
         priority,
+        estimate,
       });
       for (const subtask of subtasks) {
         await onCreateSubtask(root.id, {
           title: subtask.title,
           description: subtask.description,
+          estimate: subtask.estimate,
         });
       }
       onClose();
@@ -219,6 +296,7 @@ export function CreateTaskModal({
               type="text"
               value={title}
               onChange={(event) => handleTitleChange(event.target.value)}
+              onBlur={handleTitleBlur}
               className={inputClasses}
               placeholder="Nombre de la tarea"
             />
@@ -241,7 +319,7 @@ export function CreateTaskModal({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <div>
               <label className="mb-1 block text-xs font-medium text-ink-soft">
                 Estado
@@ -287,6 +365,26 @@ export function CreateTaskModal({
                   </>
                 )}
               />
+            </div>
+            <div>
+              <label htmlFor="new-task-estimate" className="mb-1 block text-xs font-medium text-ink-soft">
+                Estimación
+              </label>
+              <input
+                id="new-task-estimate"
+                type="text"
+                inputMode="decimal"
+                value={estimateValue}
+                onChange={(event) => {
+                  setEstimateValue(event.target.value);
+                  setEstimateError(validateEstimateLive(event.target.value));
+                }}
+                className={inputClasses}
+                placeholder="Horas"
+              />
+              {estimateError ? (
+                <p className="mt-1 text-xs text-red-600">{estimateError}</p>
+              ) : null}
             </div>
           </div>
         </form>
@@ -338,6 +436,11 @@ export function CreateTaskModal({
                   <span className="min-w-0 flex-1 truncate text-sm text-ink">
                     {subtask.title}
                   </span>
+                  {subtask.estimate !== null ? (
+                    <span className="shrink-0 text-xs text-ink-soft">
+                      {subtask.estimate}h
+                    </span>
+                  ) : null}
                   <button
                     type="button"
                     onClick={() => {

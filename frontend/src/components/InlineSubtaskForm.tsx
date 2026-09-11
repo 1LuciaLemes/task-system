@@ -12,6 +12,7 @@ export function InlineSubtaskForm({ onSubmit, onCancel }: InlineSubtaskFormProps
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [titleError, setTitleError] = useState<string | null>(null);
+  const [titleTouched, setTitleTouched] = useState(false);
   const titleRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -20,9 +21,16 @@ export function InlineSubtaskForm({ onSubmit, onCancel }: InlineSubtaskFormProps
 
   const handleTitleChange = (value: string) => {
     setTitle(value);
-    if (titleError && value.trim()) {
+    if (titleTouched) {
+      setTitleError(validateTitleInput(value));
+    } else if (titleError && value.trim()) {
       setTitleError(null);
     }
+  };
+
+  const handleTitleBlur = () => {
+    setTitleTouched(true);
+    setTitleError(validateTitleInput(title));
   };
 
   const handleSubmit = async (event: FormEvent) => {
@@ -52,6 +60,7 @@ export function InlineSubtaskForm({ onSubmit, onCancel }: InlineSubtaskFormProps
           type="text"
           value={title}
           onChange={(event) => handleTitleChange(event.target.value)}
+          onBlur={handleTitleBlur}
           className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand"
           placeholder="Título de la subtarea"
         />

@@ -26,9 +26,9 @@ describe('validateEstimateInput', () => {
   });
 
   it('rechaza negativos incluso con solo el signo', () => {
-    expect(validateEstimateInput('-')).toBe('La estimación debe ser un número positivo');
-    expect(validateEstimateInput('-1')).toBe('La estimación debe ser un número positivo');
-    expect(validateEstimateInput('-0.5')).toBe('La estimación debe ser un número positivo');
+    expect(validateEstimateInput('-')).toBe('La estimación no puede ser negativa');
+    expect(validateEstimateInput('-1')).toBe('La estimación no puede ser negativa');
+    expect(validateEstimateInput('-0.5')).toBe('La estimación no puede ser negativa');
   });
 
   it('rechaza valores no numéricos', () => {

@@ -8,7 +8,7 @@ import {
   UpdateTaskInput,
 } from '../types/task.js';
 import { PRIORITY_DOT_CLASSES, PRIORITY_LABELS, STATUS_LABELS } from '../utils/labels.js';
-import { validateTitleInput } from '../utils/validate.js';
+import { parseEstimate, validateEstimateInput, validateEstimateLive, validateTitleInput } from '../utils/validate.js';
 import { Select } from './Select.js';
 
 interface TaskFormProps {
@@ -28,15 +28,33 @@ export function TaskForm({ task, submitLabel, onSubmit, onCancel }: TaskFormProp
   const [priority, setPriority] = useState<TaskPriority>(
     task?.priority ?? TaskPriority.MEDIUM,
   );
+  const [estimateValue, setEstimateValue] = useState(
+    task?.estimate === null || task?.estimate === undefined ? '' : String(task.estimate),
+  );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [titleError, setTitleError] = useState<string | null>(null);
+  const [estimateError, setEstimateError] = useState<string | null>(null);
+
+  const [titleTouched, setTitleTouched] = useState(false);
 
   const handleTitleChange = (value: string) => {
     setTitle(value);
-    if (titleError && value.trim()) {
+    if (titleTouched) {
+      setTitleError(validateTitleInput(value));
+    } else if (titleError && value.trim()) {
       setTitleError(null);
     }
+  };
+
+  const handleTitleBlur = () => {
+    setTitleTouched(true);
+    setTitleError(validateTitleInput(title));
+  };
+
+  const handleEstimateChange = (value: string) => {
+    setEstimateValue(value);
+    setEstimateError(validateEstimateLive(value));
   };
 
   const handleSubmit = async (event: FormEvent) => {
@@ -48,6 +66,17 @@ export function TaskForm({ task, submitLabel, onSubmit, onCancel }: TaskFormProp
       return;
     }
 
+    let estimate: number | null = null;
+    const trimmedEstimate = estimateValue.trim();
+    const estimateValidation = validateEstimateInput(trimmedEstimate);
+    if (estimateValidation) {
+      setEstimateError(estimateValidation);
+      return;
+    }
+    if (trimmedEstimate !== '') {
+      estimate = parseEstimate(trimmedEstimate);
+    }
+
     setSubmitting(true);
     setError(null);
     try {
@@ -56,6 +85,7 @@ export function TaskForm({ task, submitLabel, onSubmit, onCancel }: TaskFormProp
         description: description.trim() || null,
         status,
         priority,
+        estimate,
       };
       await onSubmit(input);
     } catch (err) {
@@ -75,6 +105,7 @@ export function TaskForm({ task, submitLabel, onSubmit, onCancel }: TaskFormProp
           type="text"
           value={title}
           onChange={(event) => handleTitleChange(event.target.value)}
+          onBlur={handleTitleBlur}
           className={inputClasses}
           placeholder="Nombre de la tarea"
         />
@@ -97,7 +128,7 @@ export function TaskForm({ task, submitLabel, onSubmit, onCancel }: TaskFormProp
         />
       </div>
 
-      <div className={`grid gap-3 ${task?.kind !== TaskKind.MAIN ? 'grid-cols-1' : 'grid-cols-2'}`}>
+      <div className={`grid gap-3 ${task?.kind !== TaskKind.MAIN ? 'grid-cols-2' : 'grid-cols-3'}`}>
         <div>
           <label className="mb-1 block text-xs font-medium text-ink-soft">
             Estado
@@ -146,6 +177,23 @@ export function TaskForm({ task, submitLabel, onSubmit, onCancel }: TaskFormProp
           />
         </div>
         )}
+        <div>
+          <label htmlFor="estimate" className="mb-1 block text-xs font-medium text-ink-soft">
+            Estimación
+          </label>
+          <input
+            id="estimate"
+            type="text"
+            inputMode="decimal"
+            value={estimateValue}
+            onChange={(event) => handleEstimateChange(event.target.value)}
+            className={inputClasses}
+            placeholder="Horas"
+          />
+          {estimateError ? (
+            <p className="mt-1 text-xs text-red-600">{estimateError}</p>
+          ) : null}
+        </div>
       </div>
 
       {error ? (

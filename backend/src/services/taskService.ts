@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { Task, TaskKind, TaskPriority, TaskStatus } from '../models/task.js';
 import type { TaskRepository } from '../repositories/taskRepository.js';
-import { CreateTaskInput, UpdateTaskInput, ValidationError } from '../types/task.js';
+import { CreateTaskInput, EffortSummary, UpdateTaskInput, ValidationError } from '../types/task.js';
 
 export class TaskService {
   constructor(private readonly repository: TaskRepository) {}
@@ -174,6 +174,35 @@ export class TaskService {
   async hasIncompleteDescendants(id: string): Promise<boolean> {
     const descendants = await this.getDescendantTasks(id);
     return descendants.some((task) => task.status !== TaskStatus.COMPLETE);
+  }
+
+  async getSubtreeEstimate(id: string): Promise<number> {
+    const task = await this.repository.findById(id);
+    if (!task) {
+      return 0;
+    }
+    const descendants = await this.getDescendantTasks(id);
+    const subtreeTasks = [task, ...descendants];
+    return subtreeTasks.reduce((acc, current) => acc + (current.estimate ?? 0), 0);
+  }
+
+  async getEffortSummary(): Promise<EffortSummary> {
+    const tasks = await this.repository.findAll();
+    const summary: EffortSummary = { total: 0, pending: 0, inProgress: 0, complete: 0 };
+
+    for (const task of tasks) {
+      const estimate = task.estimate ?? 0;
+      summary.total += estimate;
+      if (task.status === TaskStatus.PENDING) {
+        summary.pending += estimate;
+      } else if (task.status === TaskStatus.IN_PROGRESS) {
+        summary.inProgress += estimate;
+      } else if (task.status === TaskStatus.COMPLETE) {
+        summary.complete += estimate;
+      }
+    }
+
+    return summary;
   }
 
   private async getDescendantTasks(id: string): Promise<Task[]> {

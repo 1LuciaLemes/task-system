@@ -2,8 +2,9 @@ import { Fragment, useEffect, useRef, useState } from 'react';
 import { CreateTaskInput, Task, TaskKind, TaskStatus, UpdateTaskInput } from '../types/task.js';
 import { STATUS_LABELS } from '../utils/labels.js';
 import { isPartiallyComplete, SubtreeStats, TaskNode } from '../utils/tree.js';
-import { formatDate } from '../utils/format.js';
+import { formatDate, formatEstimate } from '../utils/format.js';
 import { pluralize } from '../utils/plural.js';
+import { getSubtreeEstimate } from '../utils/effort.js';
 import { DropIndicator } from './DropIndicator.js';
 import { PriorityBadge } from './PriorityBadge.js';
 import { ProgressBar } from './ProgressBar.js';
@@ -92,6 +93,7 @@ export function DetailModal({
   const displayStatus = isPartiallyComplete(task, stats)
     ? TaskStatus.IN_PROGRESS
     : task.status;
+  const subtreeEstimate = getSubtreeEstimate(allTasks, task.id);
 
   const handleIndicatorDrop = (taskId: string, index: number) => {
     let target = index;
@@ -223,6 +225,12 @@ export function DetailModal({
                 total={stats.total}
                 className="w-full"
               />
+
+              {subtreeEstimate > 0 ? (
+                <p className="mt-2 text-xs text-ink-soft">
+                  Estimación: {formatEstimate(subtreeEstimate)}
+                </p>
+              ) : null}
 
               {task.description ? (
                 <div className="mt-4">

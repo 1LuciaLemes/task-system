@@ -54,6 +54,13 @@ export interface SubtreeStats {
   complete: number;
 }
 
+export interface EffortSummary {
+  total: number;
+  pending: number;
+  inProgress: number;
+  complete: number;
+}
+
 export interface ApiErrorPayload {
   error: string;
   message: string;

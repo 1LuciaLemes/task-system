@@ -37,7 +37,7 @@ backend/
   src/
     controllers/   # manejo de peticiones HTTP y respuestas
     routes/        # definición de rutas de la API
-    services/      # lógica de negocio (jerarquía, orden)
+    services/      # lógica de negocio (jerarquía, orden, estimaciones)
     repositories/  # acceso a datos (interfaz + en memoria + PostgreSQL)
     models/        # entidades del dominio
     types/         # tipos TypeScript compartidos

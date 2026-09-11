@@ -174,9 +174,18 @@ que las subtareas también serán eliminadas.
 
 # 9. Estimación
 
-Cada tarea puede tener una estimación individual, opcional y meramente
-informativa. La interfaz no muestra estimaciones en horas: el avance se
-representa mediante la barra de progreso de cada tarea y su subárbol.
+Cada tarea puede tener una estimación individual de esfuerzo, opcional y
+expresada en horas (número no negativo; `0` válido).
+
+La aplicación debe ayudar al equipo a entender su carga de trabajo
+mostrando un resumen del esfuerzo estimado:
+- cuánto trabajo aún no empezó (suma de estimaciones de tareas pendientes);
+- cuánto está en progreso (suma de estimaciones de tareas en progreso);
+- el esfuerzo estimado total.
+
+Estas sumas deben considerar toda la jerarquía de subtareas: el esfuerzo
+de una tarea incluye el de sus descendientes en cualquier nivel de
+profundidad.
 
 De los criterios del campo estimación se encarga la sección de campos
 básicos (número no negativo, `0` válido).
@@ -295,7 +304,7 @@ Se deben implementar tests unitarios para la lógica de negocio.
 Como mínimo se deben cubrir las reglas importantes relacionadas con:
 
 - Validación de tareas.
-- Estimaciones (validación del campo, no como cálculo de esfuerzo).
+- Estimaciones (validación del campo y cálculo de esfuerzo).
 - Jerarquía de tareas.
 - Eliminación de descendientes.
 - Estados.

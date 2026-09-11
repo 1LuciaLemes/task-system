@@ -477,11 +477,10 @@ manuales de estilo y UX (prompt ejecutado por el desarrollador), que no
 se registran como prompts independientes: indicadores de estado más
 grandes y claros, ciclo de estado automático que promueve una tarea
 padre a "En progreso" cuando una subtarea se completa, scroll
-horizontal con arrastre del mouse, rediseño del resumen de esfuerzo con
-barras segmentadas, selects personalizados y ajustes de layout y color
-azulado en los contenedores de progreso. La estimación en horas se
-eliminó de la vista porque no resultó funcional para el uso real de la
-aplicación.
+horizontal con arrastre del mouse, selects personalizados y ajustes de
+layout y color azulado en los contenedores de progreso. La estimación
+en horas se mantiene en la vista porque el challenge exige reflejar la
+carga de trabajo a partir del campo de estimación.
 
 ### 9. Persistencia con PostgreSQL y Docker Compose
 
@@ -500,25 +499,48 @@ Implementá la persistencia con PostgreSQL y el montaje con Docker Compose para 
 10. NO commitees nada hasta que yo lo pida.
 ```
 
-### 10. Eliminación del resumen de esfuerzo en horas
+### 10. Reincorporación de estimaciones de esfuerzo
 
 ```
-La aplicación no maneja estimaciones de esfuerzo en horas: el avance se
-representa con la barra de progreso de cada tarea y su subárbol.
+El challenge exige que la aplicación ayude a entender la carga de
+trabajo usando el campo de estimación (esfuerzo en horas), considerando
+toda la jerarquía de subtareas, y combinando la cantidad de tareas y las
+horas estimadas.
 
-Quiero quitar el código muerto relacionado con horas del frontend:
+Quiero volver a manejar las estimaciones sin sobrecargar la UI:
 
-- Eliminar `frontend/src/components/EffortSummaryStrip.tsx`.
-- Eliminar `frontend/src/utils/effort.ts` y `frontend/src/utils/effort.test.ts`.
-- Eliminar la interfaz `EffortSummary` de `frontend/src/types/task.ts`.
-- Eliminar del backend los métodos no expuestos por la API
-  `getSubtreeEstimate` y `getEffortSummary` de
-  `backend/src/services/taskService.ts`, el tipo `EffortSummary` de
-  `backend/src/types/task.ts` y sus tests en `taskService.test.ts`.
-- Actualizar `docs/requirements.md` para que no exija resumen de
-  esfuerzo ni estimaciones visibles en la interfaz (mantener la
-  estimación como campo opcional e informativo).
-- Alinear `README.md` y `docs/architecture.md` con esta decisión.
+- Backend: restaurar `EffortSummary` (backend/src/types/task.ts) y los
+  métodos `getSubtreeEstimate` y `getEffortSummary`
+  (backend/src/services/taskService.ts) con sus tests.
+- Frontend: restaurar `EffortSummary` (frontend/src/types/task.ts) y
+  `frontend/src/utils/effort.ts` con sus tests.
+- Agregar el campo "Estimación (horas)" opcional en el formulario de
+  tareas (frontend/src/components/TaskForm.tsx) con validación no
+  negativa en tiempo real (incluye rechazar el "-" sin necesidad de
+  enviar el formulario).
+- Mostrar en el sidebar un único card de Progreso con barra única
+  ponderada (80% estimación en horas y 20% cantidad de tareas) y dos
+  líneas: "X de X tareas completadas" e "X de X h completadas".
+- En el detalle de una tarea mostrar "Estimación: Xh" con la suma de las
+  horas propias más las de todo su subárbol.
+- Alinear docs/requirements.md, docs/architecture.md y README.md.
+
+NO commitees nada hasta que yo lo pida.
+```
+
+### 11. Validación en tiempo real de título y estimación
+
+```
+Quiero validación en vivo en los formularios, similar a la del título:
+
+- Al hacer click en el campo de título y dejarlo vacío (blur) debe
+  mostrar "El título es obligatorio", y revalidar mientras se escribe.
+- Al escribir un "-" en la estimación debe aparecer en el momento
+  "La estimación no puede ser negativa". Se usa type="text" con
+  inputMode="decimal" porque type="number" descarta el "-" y nunca
+  dispara la validación en vivo.
+- Aplicado en TaskForm, CreateTaskModal (modal y agregador de
+  subtareas) e InlineSubtaskForm.
 
 NO commitees nada hasta que yo lo pida.
 ```

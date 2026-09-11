@@ -54,8 +54,8 @@ traduce las acciones del usuario en llamadas HTTP.
 - Exponer una API REST CRUD para tareas.
 - Aplicar validación de datos (título obligatorio y no solo espacios,
   estimación no negativa, etc.).
-- Implementar la lógica de negocio: jerarquía de subtareas, orden y
-  eliminación en cascada.
+- Implementar la lógica de negocio: jerarquía de subtareas, orden,
+  eliminación en cascada y cálculos de estimaciones.
 - Orquestar las operaciones de persistencia a través de repositorios.
 - No depender directamente de la implementación concreta de
   PostgreSQL.
@@ -141,7 +141,7 @@ La separación entre capas sigue un flujo descendente:
   básica de entrada, invocan los métodos de los services y construyen
   las respuestas HTTP.
 - **Services:** contienen la lógica de negocio (validaciones, reglas
-  de jerarquía, eliminación en cascada).
+  de jerarquía, cálculo de estimaciones, eliminación en cascada).
   No conocen detalles de Express ni de PostgreSQL.
 - **Repositories:** abstraen el acceso a datos detrás de una interfaz.
   La lógica de negocio depende solo de esa interfaz.
@@ -163,9 +163,10 @@ La jerarquía se representa con el campo `parentTaskId`:
 El orden dentro de cada nivel jerárquico se maneja con el campo
 `position`.
 
-Las operaciones que requieren conocer la jerarquía completa (eliminar
-en cascada, construir el árbol para la vista) se resuelven en la capa
-de servicios a partir de los datos provistos por los repositorios.
+Las operaciones que requieren conocer la jerarquía completa (calcular
+estimaciones, eliminar en cascada, construir el árbol para la vista) se
+resuelven en la capa de servicios a partir de los datos provistos por
+los repositorios.
 
 ---
 
@@ -189,8 +190,9 @@ hacia PostgreSQL sin modificar la lógica de negocio.
 ## 10. Organización de los tests
 
 - **Tests unitarios de lógica de negocio (Vitest):** cubren las reglas
-  de los services: validación de tareas, jerarquía, eliminación de
-  descendientes, estados y prioridades.
+  de los services: validación de tareas, estimaciones, jerarquía,
+  cálculo recursivo de estimaciones, eliminación de descendientes,
+  estados y prioridades.
 - **Tests de API (Vitest + Supertest):** cubren los flujos principales
   de los endpoints REST contra la aplicación Express, usando
   preferiblemente el repositorio en memoria.
